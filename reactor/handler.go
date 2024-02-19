@@ -215,7 +215,6 @@ const (
 	actionsYesID            = "yes"
 	actionsNoID             = "no"
 	actionsPlanedActivityID = "planed_activity"
-	noticeBlockID           = "notice"
 )
 
 type templateData struct {
@@ -301,31 +300,21 @@ func (h *Handler) newDetectAnomalyMessageOptions(data templateData) ([]slack.Msg
 	if err := h.tpl.Execute(&buf, data); err != nil {
 		return nil, fmt.Errorf("failed to execute template: %w", err)
 	}
-	msg := slack.NewPostMessageParameters()
-	bs := buf.Bytes()
-	dec := json.NewDecoder(bytes.NewReader(bs))
+	var msg slack.Msg
+	dec := json.NewDecoder(&buf)
+	dec.DisallowUnknownFields()
 	if err := dec.Decode(&msg); err != nil {
 		return nil, fmt.Errorf("failed to decode template: %w", err)
 	}
-	dec = json.NewDecoder(bytes.NewReader(bs))
-	opts := []slack.MsgOption{slack.MsgOptionPostMessageParameters(msg)}
-	var m map[string]json.RawMessage
-	if err := dec.Decode(&m); err != nil {
-		return nil, fmt.Errorf("failed to extra message: %w", err)
+	opts := make([]slack.MsgOption, 0, 3)
+	if msg.Text != "" {
+		opts = append(opts, slack.MsgOptionText(msg.Text, false))
 	}
-	if _, ok := m["attachments"]; ok {
-		var attachments []slack.Attachment
-		if err := json.Unmarshal(m["attachments"], &attachments); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal attachments: %w", err)
-		}
-		opts = append(opts, slack.MsgOptionAttachments(attachments...))
+	if len(msg.Attachments) > 0 {
+		opts = append(opts, slack.MsgOptionAttachments(msg.Attachments...))
 	}
-	if _, ok := m["blocks"]; ok {
-		var blocks slack.Blocks
-		if err := json.Unmarshal(m["blocks"], &blocks); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal blocks: %w", err)
-		}
-		opts = append(opts, slack.MsgOptionBlocks(blocks.BlockSet...))
+	if len(msg.Blocks.BlockSet) > 0 {
+		opts = append(opts, slack.MsgOptionBlocks(msg.Blocks.BlockSet...))
 	}
 	return opts, nil
 }
@@ -417,22 +406,6 @@ func (h *Handler) processInteractiveMessage(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		fmt.Printf("Could not parse action response JSON: %v", err)
 	}
-	msg := payload.Message
-	var noticeBlockIndex int = -1
-	for i, b := range msg.Blocks.BlockSet {
-		section, ok := b.(*slack.SectionBlock)
-		if !ok {
-			continue
-		}
-		if section.BlockID == noticeBlockID {
-			noticeBlockIndex = i
-			break
-		}
-	}
-	if noticeBlockIndex == -1 {
-		noticeBlockIndex = len(msg.Blocks.BlockSet)
-		msg.Blocks.BlockSet = append(msg.Blocks.BlockSet, slack.NewSectionBlock(slack.NewTextBlockObject(slack.MarkdownType, "[notice block]", false, false), nil, nil))
-	}
 
 	if canyon.Used(r) && !canyon.IsWorker(r) {
 		msgID, err := canyon.SendToWorker(r, nil)
@@ -442,14 +415,21 @@ func (h *Handler) processInteractiveMessage(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		h.logger.Info("send process intaracitve message request to worker", "msg_id", msgID)
-		block := slack.NewSectionBlock(slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("Processing feedback action request... (msg_id: %s)", msgID), false, false), nil, nil)
-		block.BlockID = noticeBlockID
-		msg.Blocks.BlockSet[noticeBlockIndex] = block
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-
-	json.NewEncoder(os.Stdout).Encode(payload)
+	isWorker := canyon.Used(r) && canyon.IsWorker(r)
+	postToThread := func(ctx context.Context, options ...slack.MsgOption) error {
+		msgTs := payload.Message.Timestamp
+		msgChannel := payload.Channel.ID
+		options = append(options, slack.MsgOptionTS(msgTs))
+		_, _, err := h.client.PostMessageContext(ctx, msgChannel, options...)
+		if err != nil {
+			return fmt.Errorf("failed to post message: %w", err)
+		}
+		return nil
+	}
+	ctx := r.Context()
 	var action *slack.BlockAction
 	if len(payload.ActionCallback.BlockActions) == 0 {
 		h.logger.Warn("no action found")
@@ -472,32 +452,29 @@ func (h *Handler) processInteractiveMessage(w http.ResponseWriter, r *http.Reque
 	v, err := url.ParseQuery(action.Value)
 	if err != nil {
 		h.logger.Warn("failed to parse action value", "error", err)
+		if isWorker {
+			postToThread(ctx, slack.MsgOptionText(fmt.Sprintf("[error] failed to parse action value: %s", err), false))
+		}
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	anomaryID := v.Get("anomaly_id")
-	h.logger.Info("provide feedback action", "anomaly_id", anomaryID, "action_id", action.ActionID, "user_id", actionUser.ID)
-	stauts := http.StatusOK
-	if err := h.svc.ProvideFeedback(r.Context(), anomaryID, action.ActionID); err != nil {
+	anomalyID := v.Get("anomaly_id")
+	h.logger.Info("provide feedback action", "anomaly_id", anomalyID, "action_id", action.ActionID, "user_id", actionUser.ID)
+	if err := h.svc.ProvideFeedback(ctx, anomalyID, action.ActionID); err != nil {
 		h.logger.Error("failed to provide feedback", "error", err)
-		block := slack.NewSectionBlock(slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("[error] failed to provide feedback: %s", err), false, false), nil, nil)
-		block.BlockID = noticeBlockID
-		msg.Blocks.BlockSet[noticeBlockIndex] = block
-		stauts = http.StatusInternalServerError
-	} else {
-		block := slack.NewSectionBlock(slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("Feedback `%s` provided by user %s", action.Text.Text, actionUser.Name), false, false), nil, nil)
-		block.BlockID = noticeBlockID
-		msg.Blocks.BlockSet[noticeBlockIndex] = block
+		if isWorker {
+			postToThread(ctx,
+				slack.MsgOptionText(fmt.Sprintf("[error] failed to provide feedback: %s", err), false),
+			)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	_, _, _, err = h.client.UpdateMessage(
-		payload.Channel.ID,
-		payload.Message.Timestamp,
-		slack.MsgOptionBlocks(msg.Blocks.BlockSet...),
+	postToThread(ctx,
+		slack.MsgOptionText(fmt.Sprintf("Feedback of `%s` was provided for AnomalyID `%s` by user `%s` .", action.Text.Text, anomalyID, actionUser.Name), false),
+		slack.MsgOptionBroadcast(),
 	)
-	if err != nil {
-		h.logger.Warn("failed to update message", "error", err)
-	}
-	w.WriteHeader(stauts)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) processEventsAPIEvent(w http.ResponseWriter, r *http.Request) {

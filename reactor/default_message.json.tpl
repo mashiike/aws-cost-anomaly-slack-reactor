@@ -4,7 +4,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": ":mega: *<https://console.aws.amazon.com/cost-management/home#/anomaly-detection/monitors/{{ .MonitorID }}/anomalies/{{ .AnomalyID }}|AWS Cost Anomaly Detected | Account: {{ .AccountID }}| {{ .AnomalyTimeRange }} >*"
+				"text": ":mega: *<https://console.aws.amazon.com/cost-management/home#/anomaly-detection/monitors/{{ .MonitorID }}/anomalies/{{ .AnomalyID }}|AWS Cost Anomaly Detected | Account: {{ .AccountID }}| {{ .AnomalyID }} >*"
 			}
 		},
 		{
