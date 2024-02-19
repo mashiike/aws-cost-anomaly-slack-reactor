@@ -1,0 +1,22 @@
+{
+  "Description": "Example of aws-cost-anomaly-slack-reactor",
+  "Architectures": ["arm64"],
+  "Environment": {
+      "Variables": {
+          "SQS_QUEUE_NAME": "aws-cost-anomaly-slack-reactor",
+          "LOG_LEVEL": "debug",
+          "SSMWRAP_PATHS": "/cost-anomaly-slack-reactor/",
+          "TZ": "Asia/Tokyo"
+      }
+  },
+  "FunctionName": "aws-cost-anomaly-slack-reactor",
+  "Handler": "bootstrap",
+  "MemorySize": 128,
+  "Role": "arn:aws:iam::{{ must_env `AWS_ACCOUNT_ID` }}:role/aws-cost-anomaly-slack-reactor",
+  "Runtime": "provided.al2",
+  "Tags": {},
+  "Timeout": 5,
+  "TracingConfig": {
+      "Mode": "PassThrough"
+  }
+}
