@@ -49,7 +49,7 @@ func main() {
 	flag.StringVar(&address, "address", ":8080", "listen address")
 	flag.StringVar(&prefix, "prefix", "/", "path prefix")
 	flag.StringVar(&sqs_queue_name, "sqs-queue-name", "", "SQS queue name")
-	flag.Visit(flagx.EnvToFlag)
+	flag.VisitAll(flagx.EnvToFlag)
 	flag.Parse()
 	var minLevel slog.Level
 	switch strings.ToLower(logLevel) {

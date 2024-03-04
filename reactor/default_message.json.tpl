@@ -4,7 +4,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": ":mega: *<{{ .Anomaly.AnomalyDetailsLink }}|AWS Cost Anomaly Detected | Account: {{ .AccountID }}| {{ .Anomaly.AnomalyID }} >*"
+				"text": ":mega: *<{{ .Anomaly.AnomalyDetailsLink }}|AWS Cost Anomaly Detected | Account: {{ .Anomaly.AccountID }}| {{ .Anomaly.AnomalyID }} >*"
 			}
 		},
 		{
@@ -14,7 +14,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "コスト異常を検知しました。\n\n- Start Date: {{ .Anomaly.AnomalyStartDate }}\n- End Date: {{ .Anomaly.AnomalyEndDate }}\n-  Total Impact: ${{ .Anomaly.Impact.TotalImpact }} \n"
+				"text": "コスト異常を検知しました。\n\n- Start Date: {{ .Anomaly.AnomalyStartDate | to_date_str }}\n- End Date: {{ .Anomaly.AnomalyEndDate | to_date_str }}\n-  Total Impact: ${{ .Anomaly.Impact.TotalImpact }} \n"
       }
 		},
     {{ range $i, $v := .Anomaly.RootCauses }}
@@ -25,7 +25,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "根本原因 #{{ $i }}\n\n- Service: {{ $v.Service }}\n- Account: {{ $v.LinkedAccount }}\n - AccountName: {{ $v.LinkedAccountName }}\n- Region: {{ $v.Region }}\n-  UsageType: ${{ $v.UsageType }} \n"
+				"text": "根本原因 #{{ $i }}\n\n- Service: {{ $v.Service }}\n- Account: {{ $v.LinkedAccount }}\n - AccountName: {{ $v.LinkedAccountName }}\n- Region: {{ $v.Region }}\n-  UsageType: {{ $v.UsageType }} \n"
       }
 		},
     {{ end }}

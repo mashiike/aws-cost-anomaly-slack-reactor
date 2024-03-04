@@ -43,10 +43,10 @@ type AnomalyScore struct {
 }
 
 type AnomalyImpact struct {
-	MaxImpact             int     `json:"maxImpact"`
-	TotalActualSpend      int     `json:"totalActualSpend"`
-	TotalExpectedSpend    int     `json:"totalExpectedSpend"`
-	TotalImpact           int     `json:"totalImpact"`
+	MaxImpact             float64 `json:"maxImpact"`
+	TotalActualSpend      float64 `json:"totalActualSpend"`
+	TotalExpectedSpend    float64 `json:"totalExpectedSpend"`
+	TotalImpact           float64 `json:"totalImpact"`
 	TotalImpactPercentage float64 `json:"totalImpactPercentage"`
 }
 

@@ -103,6 +103,9 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 			}
 			return string([]byte(bs)[1 : len(bs)-1]), nil
 		},
+		"to_date_str": func(t time.Time) string {
+			return t.Format("2006-01-02")
+		},
 	}).Parse(params.templateStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template: %w", err)
@@ -217,7 +220,7 @@ type templateData struct {
 	ActionsPlanedActivityID    string
 }
 
-func (h *Handler) newTemplateData(ctx context.Context, anomaly Anomaly) (templateData, error) {
+func (h *Handler) newTemplateData(_ context.Context, anomaly Anomaly) (templateData, error) {
 	var monitorID string
 	arnObj, err := arn.Parse(anomaly.MonitorArn)
 	if err != nil {
@@ -273,25 +276,36 @@ func (h *Handler) newDetectAnomalyMessageOptions(data templateData) ([]slack.Msg
 
 func (h *Handler) handleAmazonSNS(w http.ResponseWriter, r *http.Request) {
 	h.logger.Debug("start handle amazon sns")
+	bs, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.Error("failed to read body", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	slog.Debug("amazon sns notification", "body", string(bs))
 	var n httpNotification
-	dec := json.NewDecoder(r.Body)
+	dec := json.NewDecoder(bytes.NewBuffer(bs))
 	if err := dec.Decode(&n); err != nil {
 		h.logger.Error("failed to decode body", "error", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	h.logger.Info("handle amazon sns http notification", "type", n.Type, "topic_arn", n.TopicArn, "subject", n.Subject)
 	ctx := r.Context()
-	arnObj, err := arn.Parse(n.TopicArn)
-	if err != nil {
-		h.logger.Error("failed to parse arn", "error", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	h.logger.Info("handle amazon sns http notification", "type", n.Type, "topic_arn", n.TopicArn, "subject", n.Subject)
+	if n.Type == "" && n.MessageId == "" && n.TopicArn == "" {
+		h.logger.Warn("maybe this is raw notification, fallbac as notification type")
+		n.Message = string(bs)
+		n.Type = "Notification"
 	}
 	switch n.Type {
 	case "SubscriptionConfirmation":
 		h.logger.Info("subscription confirmation", "subscribe_url", n.SubscribeURL)
-
+		arnObj, err := arn.Parse(n.TopicArn)
+		if err != nil {
+			h.logger.Error("failed to parse arn", "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		client := sns.New(sns.Options{Region: arnObj.Region})
 		_, err = client.ConfirmSubscription(ctx, &sns.ConfirmSubscriptionInput{
 			Token:                     aws.String(n.Token),
