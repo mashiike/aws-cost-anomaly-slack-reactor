@@ -1,0 +1,31 @@
+{
+  "accountId": "123456789012",
+  "anomalyDetailsLink": "https://console.aws.amazon.com/cost-management/home#/anomaly-detection/monitors/abcdef12-1234-4ea0-84cc-918a97d736ef/anomalies/12345678-abcd-ef12-3456-987654321a12",
+  "anomalyEndDate": "2021-05-25T00:00:00Z",
+  "anomalyId": "12345678-abcd-ef12-3456-987654321a12",
+  "anomalyScore": {
+      "currentScore": 0.47,
+      "maxScore": 0.47
+  },
+  "anomalyStartDate": "2021-05-25T00:00:00Z",
+  "dimensionalValue": "ServiceName",
+  "impact": {
+      "maxImpact": 151,
+      "totalActualSpend": 1301,
+      "totalExpectedSpend": 300,
+      "totalImpact": 1001,
+      "totalImpactPercentage": 333.67
+  },
+  "monitorArn": "arn:aws:ce::123456789012:anomalymonitor/abcdef12-1234-4ea0-84cc-918a97d736ef",
+  "rootCauses": [
+      {
+          "linkedAccount": "AnomalousLinkedAccount",
+          "linkedAccountName": "AnomalousLinkedAccountName",
+          "region": "AnomalousRegionName",
+          "service": "AnomalousServiceName",
+          "usageType": "AnomalousUsageType"
+      }
+  ],
+  "subscriptionId": "874c100c-59a6-4abb-a10a-4682cc3f2d69",
+  "subscriptionName": "alertSubscription"
+}
