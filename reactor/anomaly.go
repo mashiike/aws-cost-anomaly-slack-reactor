@@ -1,6 +1,26 @@
 package reactor
 
-import "time"
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"image/color"
+	"io"
+	"log/slog"
+	"math"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
+	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
+	"github.com/mashiike/aws-cost-anomaly-slack-reactor/internal/costexplorerx"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
+)
 
 type Anomaly struct {
 	AccountID          string        `json:"accountId"`
@@ -36,4 +56,178 @@ type RootCause struct {
 	Region            string `json:"region"`
 	Service           string `json:"service"`
 	UsageType         string `json:"usageType"`
+}
+
+type GraphGenerator struct {
+	client costexplorerx.GetCostAndUsageAPIClient
+}
+
+func NewGraphGenerator(client costexplorerx.GetCostAndUsageAPIClient) *GraphGenerator {
+	return &GraphGenerator{
+		client: client,
+	}
+}
+
+func (g *GraphGenerator) Generate(ctx context.Context, anomaly Anomaly) ([]io.Reader, error) {
+	graphs := make([]io.Reader, 0, len(anomaly.RootCauses))
+	for _, c := range anomaly.RootCauses {
+		w, err := g.generate(ctx, anomaly.AnomalyStartDate.AddDate(0, 0, -8), anomaly.AnomalyEndDate.AddDate(0, 0, 8), c)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate graph: %w", err)
+		}
+		var buf bytes.Buffer
+		if _, err := w.WriteTo(&buf); err != nil {
+			return nil, fmt.Errorf("failed to write graph: %w", err)
+		}
+		graphs = append(graphs, &buf)
+	}
+	return graphs, nil
+}
+
+func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time, c RootCause) (io.WriterTo, error) {
+	costLabel := []string{}
+	andExpr := []types.Expression{
+		{
+			Dimensions: &types.DimensionValues{
+				Key:    types.DimensionRecordType,
+				Values: []string{"Usage"},
+			},
+		},
+	}
+	if c.LinkedAccount != "" {
+		andExpr = append(andExpr, types.Expression{
+			Dimensions: &types.DimensionValues{
+				Key:    types.DimensionLinkedAccount,
+				Values: []string{c.LinkedAccount},
+			},
+		})
+		costLabel = append(costLabel, fmt.Sprintf("%s(%s)", c.LinkedAccountName, c.LinkedAccount))
+	}
+	if c.Region != "" {
+		andExpr = append(andExpr, types.Expression{
+			Dimensions: &types.DimensionValues{
+				Key:    types.DimensionRegion,
+				Values: []string{c.Region},
+			},
+		})
+		costLabel = append(costLabel, c.Region)
+	}
+	if c.Service != "" {
+		andExpr = append(andExpr, types.Expression{
+			Dimensions: &types.DimensionValues{
+				Key:    types.DimensionService,
+				Values: []string{c.Service},
+			},
+		})
+		costLabel = append(costLabel, c.Service)
+	}
+	if c.UsageType != "" {
+		andExpr = append(andExpr, types.Expression{
+			Dimensions: &types.DimensionValues{
+				Key:    types.DimensionUsageType,
+				Values: []string{c.UsageType},
+			},
+		})
+		costLabel = append(costLabel, c.UsageType)
+	}
+	input := &costexplorer.GetCostAndUsageInput{
+		Granularity: types.GranularityDaily,
+		TimePeriod: &types.DateInterval{
+			Start: aws.String(startAt.Format("2006-01-02")),
+			End:   aws.String(endAt.Format("2006-01-02")),
+		},
+		Filter: &types.Expression{
+			And: andExpr,
+		},
+		GroupBy: []types.GroupDefinition{},
+		Metrics: []string{"NET_UNBLENDED_COST"},
+	}
+	paginator := costexplorerx.NewGetCostAndUsagePaginator(g.client, input)
+	costs := make(dateCosts, 0, 28)
+	dates := make([]string, 0, 28)
+	unit := ""
+	for paginator.HasMorePages() {
+		out, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get cost and usage: %w", err)
+		}
+		for _, data := range out.ResultsByTime {
+			date, err := time.Parse("2006-01-02", *data.TimePeriod.Start)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse point date: %w", err)
+			}
+			netUnblendedCost, ok := data.Total["NetUnblendedCost"]
+			if !ok {
+				return nil, errors.New("NetUnblendedCost not found")
+			}
+			cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
+			if err != nil {
+				return nil, err
+			}
+			unit = *netUnblendedCost.Unit
+			costs = append(costs, dateCost{Date: date, Cost: cost})
+			dates = append(dates, date.Format("2006-01-02"))
+		}
+	}
+	title := strings.Join(costLabel, ",")
+	slog.InfoContext(ctx, "generate graph", "title", title, "start_at", startAt, "end_at", endAt)
+	p := plot.New()
+	p.Title.Text = title
+	p.X.Label.Text = "Date"
+	p.X.Tick.Marker = dateTicker{Dates: dates}
+	p.Y.Label.Text = fmt.Sprintf("Cost (%s)", unit)
+
+	bars, err := plotter.NewBarChart(costs, vg.Points(20))
+	if err != nil {
+		return nil, err
+	}
+	bars.LineStyle.Width = vg.Length(0)
+	bars.Color = color.RGBA{R: 0, G: 128, B: 255, A: 255}
+	p.Add(bars)
+
+	w, err := p.WriterTo(10*vg.Inch, 4*vg.Inch, "png")
+	if err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+type dateCost struct {
+	Date time.Time
+	Cost float64
+}
+
+type dateCosts []dateCost
+
+var _ plotter.Valuer = dateCosts(nil)
+
+func (dc dateCosts) Len() int {
+	return len(dc)
+}
+
+func (dc dateCosts) Value(i int) float64 {
+	return dc[i].Cost
+}
+
+type dateTicker struct {
+	Dates []string
+}
+
+func (dt dateTicker) Ticks(min, max float64) []plot.Tick {
+	maxLabels := 8
+	interval := int(math.Ceil(float64(len(dt.Dates)) / float64(maxLabels)))
+	var ticks []plot.Tick
+	for i, date := range dt.Dates {
+		if float64(i) >= min && float64(i) <= max {
+			tick := plot.Tick{
+				Value: float64(i),
+				Label: date,
+			}
+			if int(float64(i)-min)%interval != 0 {
+				tick.Label = ""
+			}
+			ticks = append(ticks, tick)
+		}
+	}
+	return ticks
 }

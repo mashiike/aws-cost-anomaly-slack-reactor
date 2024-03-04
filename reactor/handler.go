@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -30,7 +31,7 @@ import (
 )
 
 type Handler struct {
-	svc          *costExplorerService
+	ce           *costexplorer.Client
 	client       *slack.Client
 	logger       *slog.Logger
 	router       *mux.Router
@@ -134,13 +135,9 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	} else {
 		params.logger.Warn("slack bot token is not set, running anonymous mode")
 	}
-	svc, err := newCostExplorerService(ctx, params)
-	if err != nil {
-		return nil, err
-	}
 	router := mux.NewRouter()
 	h := &Handler{
-		svc:          svc,
+		ce:           costexplorer.NewFromConfig(*params.awsCfg),
 		logger:       params.logger.With("component", "handler"),
 		router:       router,
 		client:       client,
@@ -166,15 +163,6 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	})
 	router.HandleFunc("/amazon-sns", h.handleAmazonSNS).Methods(http.MethodPost)
 	router.HandleFunc("/slack/events", h.handleSlackEvents).Methods(http.MethodPost)
-	router.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		if err := h.postAnomalyDetectedMessage(ctx, "d77d5f19-c994-418b-8864-70ebc37df972"); err != nil {
-			h.logger.Error("failed to post anomaly detected message", "error", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	})
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.UserAgent(), "Slackbot") {
 			h.handleSlackEvents(w, r)
@@ -218,11 +206,8 @@ const (
 )
 
 type templateData struct {
-	AnomalyID                  string
-	AnomalyTimeRange           string
+	Anomaly                    Anomaly
 	MonitorID                  string
-	AccountID                  string
-	Region                     string
 	ActionsBlockID             string
 	ActionsYesValue            string
 	ActionsYesID               string
@@ -230,67 +215,34 @@ type templateData struct {
 	ActionsNoID                string
 	ActionsPlanedActivityValue string
 	ActionsPlanedActivityID    string
-	AnomalyStartDate           string
-	AnomalyEndDate             string
-	AnomalyScore               types.AnomalyScore
-	Impact                     types.Impact
-	RootCauses                 []types.RootCause
 }
 
-func (h *Handler) newTemplateData(ctx context.Context, anomalyID string) (templateData, error) {
-	anomaly, err := h.svc.GetAnomaly(ctx, anomalyID)
-	if err != nil {
-		return templateData{}, fmt.Errorf("failed to get anomaly: %w", err)
-	}
+func (h *Handler) newTemplateData(ctx context.Context, anomaly Anomaly) (templateData, error) {
 	var monitorID string
-	arnObj, err := arn.Parse(*anomaly.MonitorArn)
+	arnObj, err := arn.Parse(anomaly.MonitorArn)
 	if err != nil {
 		return templateData{}, fmt.Errorf("failed to parse monitor arn: %w", err)
 	}
 	monitorID = strings.TrimPrefix(arnObj.Resource, "anomalymonitor/")
 	data := templateData{
-		AnomalyID:      *anomaly.AnomalyId,
+		Anomaly:        anomaly,
 		MonitorID:      monitorID,
-		AccountID:      h.awsAccountID,
 		ActionsBlockID: actionsBlockID,
 		ActionsYesValue: url.Values{
-			"anomaly_id": []string{*anomaly.AnomalyId},
+			"anomaly_id": []string{anomaly.AnomalyID},
 			"action":     []string{string(types.AnomalyFeedbackTypeYes)},
 		}.Encode(),
 		ActionsYesID: actionsYesID,
 		ActionsNoValue: url.Values{
-			"anomaly_id": []string{*anomaly.AnomalyId},
+			"anomaly_id": []string{anomaly.AnomalyID},
 			"action":     []string{string(types.AnomalyFeedbackTypeNo)},
 		}.Encode(),
 		ActionsNoID: actionsNoID,
 		ActionsPlanedActivityValue: url.Values{
-			"anomaly_id": []string{*anomaly.AnomalyId},
+			"anomaly_id": []string{anomaly.AnomalyID},
 			"action":     []string{string(types.AnomalyFeedbackTypePlannedActivity)},
 		}.Encode(),
 		ActionsPlanedActivityID: actionsPlanedActivityID,
-		RootCauses:              anomaly.RootCauses,
-	}
-	if anomaly.AnomalyScore != nil {
-		data.AnomalyScore = *anomaly.AnomalyScore
-	}
-	if anomaly.Impact != nil {
-		data.Impact = *anomaly.Impact
-	}
-	today := time.Now().Format("2006-01-02")
-	startDate := today
-	if anomaly.AnomalyStartDate != nil && *anomaly.AnomalyStartDate != "" {
-		startDate = *anomaly.AnomalyStartDate
-		data.AnomalyStartDate = startDate
-	}
-	endDate := today
-	if anomaly.AnomalyEndDate != nil && *anomaly.AnomalyEndDate != "" {
-		endDate = *anomaly.AnomalyEndDate
-		data.AnomalyEndDate = endDate
-	}
-	if startDate == endDate {
-		data.AnomalyTimeRange = startDate
-	} else {
-		data.AnomalyTimeRange = fmt.Sprintf("%s - %s", startDate, endDate)
 	}
 	return data, nil
 }
@@ -360,7 +312,17 @@ func (h *Handler) handleAmazonSNS(w http.ResponseWriter, r *http.Request) {
 		return
 	case "Notification":
 		h.logger.Info("handle amazon sns notification", "subject", n.Subject, "message_id", n.MessageId)
-		// TODO: post anomaly detected message
+		var a Anomaly
+		if err := json.Unmarshal([]byte(n.Message), &a); err != nil {
+			h.logger.Error("failed to unmarshal message", "error", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if err := h.postAnomalyDetectedMessage(ctx, a); err != nil {
+			h.logger.Error("failed to post anomaly detected message", "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -460,7 +422,7 @@ func (h *Handler) processInteractiveMessage(w http.ResponseWriter, r *http.Reque
 	}
 	anomalyID := v.Get("anomaly_id")
 	h.logger.Info("provide feedback action", "anomaly_id", anomalyID, "action_id", action.ActionID, "user_id", actionUser.ID)
-	if err := h.svc.ProvideFeedback(ctx, anomalyID, action.ActionID); err != nil {
+	if err := h.ProvideFeedback(ctx, anomalyID, action.ActionID); err != nil {
 		h.logger.Error("failed to provide feedback", "error", err)
 		if isWorker {
 			postToThread(ctx,
@@ -538,8 +500,8 @@ func (h *Handler) processEventsAPIEvent(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, anomalyID string) error {
-	data, err := h.newTemplateData(ctx, anomalyID)
+func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) error {
+	data, err := h.newTemplateData(ctx, a)
 	if err != nil {
 		return fmt.Errorf("failed to create template data: %w", err)
 	}
@@ -551,14 +513,16 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, anomalyID stri
 	if err != nil {
 		return fmt.Errorf("failed to post message: %w", err)
 	}
-	readers, err := h.svc.GenerateGraphs(ctx, anomalyID)
+	h.logger.Info("post anomaly detected message", "anomaly_id", a.AnomalyID, "thread_ts", ts)
+	g := NewGraphGenerator(h.ce)
+	readers, err := g.Generate(ctx, a)
 	if err != nil {
 		return fmt.Errorf("failed to generate graphs: %w", err)
 	}
 	for i, r := range readers {
 		file, err := h.client.UploadFileContext(ctx, slack.FileUploadParameters{
 			Reader:          r,
-			Filename:        fmt.Sprintf("anomaly-%s-root-cause%d.png", anomalyID, i+1),
+			Filename:        fmt.Sprintf("anomaly-%s-root-cause%d.png", a.AnomalyID, i+1),
 			Channels:        []string{h.channel},
 			ThreadTimestamp: ts,
 		})
@@ -566,6 +530,28 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, anomalyID stri
 			return fmt.Errorf("failed to upload file: %w", err)
 		}
 		h.logger.Info("upload file", "file_id", file.ID, "file_name", file.Name)
+	}
+	return nil
+}
+
+func (h *Handler) ProvideFeedback(ctx context.Context, annomalyID string, actionID string) error {
+	var feedbackType types.AnomalyFeedbackType
+	switch actionID {
+	case actionsYesID:
+		feedbackType = types.AnomalyFeedbackTypeYes
+	case actionsNoID:
+		feedbackType = types.AnomalyFeedbackTypeNo
+	case actionsPlanedActivityID:
+		feedbackType = types.AnomalyFeedbackTypePlannedActivity
+	default:
+		return fmt.Errorf("invalid action id: %s", actionID)
+	}
+	_, err := h.ce.ProvideAnomalyFeedback(ctx, &costexplorer.ProvideAnomalyFeedbackInput{
+		AnomalyId: aws.String(annomalyID),
+		Feedback:  feedbackType,
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }

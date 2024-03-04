@@ -8,7 +8,7 @@
       "maxScore": 0.47
   },
   "anomalyStartDate": "2021-05-25T00:00:00Z",
-  "dimensionalValue": "ServiceName",
+  "dimensionalValue": "Amazon Elastic Compute Cloud - Compute",
   "impact": {
       "maxImpact": 151,
       "totalActualSpend": 1301,
@@ -19,10 +19,10 @@
   "monitorArn": "arn:aws:ce::123456789012:anomalymonitor/abcdef12-1234-4ea0-84cc-918a97d736ef",
   "rootCauses": [
       {
-          "linkedAccount": "AnomalousLinkedAccount",
-          "linkedAccountName": "AnomalousLinkedAccountName",
-          "region": "AnomalousRegionName",
-          "service": "AnomalousServiceName",
+          "linkedAccount": "123456789012",
+          "linkedAccountName": "test",
+          "region": "ap-northeast-1",
+          "service": "Amazon Elastic Compute Cloud - Compute",
           "usageType": "AnomalousUsageType"
       }
   ],

@@ -4,7 +4,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": ":mega: *<https://console.aws.amazon.com/cost-management/home#/anomaly-detection/monitors/{{ .MonitorID }}/anomalies/{{ .AnomalyID }}|AWS Cost Anomaly Detected | Account: {{ .AccountID }}| {{ .AnomalyID }} >*"
+				"text": ":mega: *<{{ .Anomaly.AnomalyDetailsLink }}|AWS Cost Anomaly Detected | Account: {{ .AccountID }}| {{ .Anomaly.AnomalyID }} >*"
 			}
 		},
 		{
@@ -14,10 +14,10 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "コスト異常を検知しました。\n\n- Start Date: {{ .AnomalyStartDate }}\n- End Date: {{ .AnomalyEndDate }}\n-  Total Impact: ${{ .Impact.TotalImpact }} \n"
+				"text": "コスト異常を検知しました。\n\n- Start Date: {{ .Anomaly.AnomalyStartDate }}\n- End Date: {{ .Anomaly.AnomalyEndDate }}\n-  Total Impact: ${{ .Anomaly.Impact.TotalImpact }} \n"
       }
 		},
-    {{ range $i, $v := .RootCauses }}
+    {{ range $i, $v := .Anomaly.RootCauses }}
 		{
 			"type": "divider"
 		},

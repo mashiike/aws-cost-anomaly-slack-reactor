@@ -16,6 +16,7 @@ require (
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
 	github.com/mashiike/canyon v0.7.0
 	github.com/mashiike/slogutils v0.4.0
+	github.com/sebdah/goldie/v2 v2.5.3
 	github.com/slack-go/slack v0.12.3
 	github.com/stretchr/testify v1.8.4
 	gonum.org/v1/plot v0.14.0
@@ -60,6 +61,8 @@ require (
 	github.com/pires/go-proxyproto v0.7.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/sergi/go-diff v1.0.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	golang.org/x/image v0.11.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
