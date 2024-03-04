@@ -67,7 +67,6 @@ data "aws_iam_policy_document" "reactor" {
   }
   statement {
     actions = [
-      "ce:GetAnomalies",
       "ce:ProvideAnomalyFeedback",
       "ce:GetCostAndUsage",
     ]
