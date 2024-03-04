@@ -17,6 +17,7 @@ require (
 	github.com/mashiike/canyon v0.7.0
 	github.com/mashiike/slogutils v0.4.0
 	github.com/slack-go/slack v0.12.3
+	github.com/stretchr/testify v1.8.4
 	gonum.org/v1/plot v0.14.0
 )
 
@@ -46,6 +47,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.22.0 // indirect
 	github.com/aws/smithy-go v1.20.0 // indirect
 	github.com/campoy/embedmd v1.0.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-fonts/liberation v0.3.1 // indirect
 	github.com/go-latex/latex v0.0.0-20230307184459-12ec69307ad9 // indirect
 	github.com/go-pdf/fpdf v0.8.0 // indirect
@@ -62,4 +64,5 @@ require (
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
