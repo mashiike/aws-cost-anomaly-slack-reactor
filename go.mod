@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-lambda-go v1.46.0
 	github.com/aws/aws-sdk-go-v2 v1.25.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.4
-	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.34.0
+	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.36.0
 	github.com/aws/aws-sdk-go-v2/service/sns v1.28.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.1
 	github.com/fatih/color v1.16.0
