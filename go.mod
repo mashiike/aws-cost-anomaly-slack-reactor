@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.28.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.1
 	github.com/fatih/color v1.16.0
-	github.com/fujiwara/ridge v0.7.0
+	github.com/fujiwara/ridge v0.9.0
 	github.com/gorilla/mux v1.8.1
 	github.com/handlename/ssmwrap v1.2.1
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
