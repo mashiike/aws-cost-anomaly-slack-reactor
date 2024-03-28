@@ -523,16 +523,17 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 	if err != nil {
 		return fmt.Errorf("failed to create message: %w", err)
 	}
-	_, ts, err := h.client.PostMessageContext(ctx, h.channel, opts...)
-	if err != nil {
-		return fmt.Errorf("failed to post message: %w", err)
-	}
-	h.logger.Info("post anomaly detected message", "anomaly_id", a.AnomalyID, "thread_ts", ts)
 	g := NewGraphGenerator(h.ce)
 	readers, err := g.Generate(ctx, a)
 	if err != nil {
 		return fmt.Errorf("failed to generate graphs: %w", err)
 	}
+	_, ts, err := h.client.PostMessageContext(ctx, h.channel, opts...)
+	if err != nil {
+		return fmt.Errorf("failed to post message: %w", err)
+	}
+	h.logger.Info("post anomaly detected message", "anomaly_id", a.AnomalyID, "thread_ts", ts)
+
 	for i, r := range readers {
 		file, err := h.client.UploadFileContext(ctx, slack.FileUploadParameters{
 			Reader:          r,
