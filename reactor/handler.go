@@ -31,16 +31,17 @@ import (
 )
 
 type Handler struct {
-	ce           *costexplorer.Client
-	client       *slack.Client
-	logger       *slog.Logger
-	router       *mux.Router
-	channel      string
-	botUserID    string
-	botID        string
-	signalSecret string
-	awsAccountID string
-	tpl          *template.Template
+	ce            *costexplorer.Client
+	client        *slack.Client
+	logger        *slog.Logger
+	router        *mux.Router
+	channel       string
+	botUserID     string
+	botID         string
+	signalSecret  string
+	awsAccountID  string
+	noErrorReport bool
+	tpl           *template.Template
 }
 
 var _ http.Handler = (*Handler)(nil)
@@ -140,16 +141,17 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	}
 	router := mux.NewRouter()
 	h := &Handler{
-		ce:           costexplorer.NewFromConfig(*params.awsCfg),
-		logger:       params.logger.With("component", "handler"),
-		router:       router,
-		client:       client,
-		botID:        botID,
-		channel:      params.slackChannel,
-		botUserID:    botUserID,
-		signalSecret: params.slackSignalSecret,
-		awsAccountID: awsAccountID,
-		tpl:          tpl,
+		ce:            costexplorer.NewFromConfig(*params.awsCfg),
+		logger:        params.logger.With("component", "handler"),
+		router:        router,
+		client:        client,
+		botID:         botID,
+		channel:       params.slackChannel,
+		botUserID:     botUserID,
+		signalSecret:  params.slackSignalSecret,
+		awsAccountID:  awsAccountID,
+		noErrorReport: params.noErrorReport,
+		tpl:           tpl,
 	}
 	var dummy templateData
 	if _, err := h.newDetectAnomalyMessageOptions(dummy); err != nil {
@@ -334,6 +336,12 @@ func (h *Handler) handleAmazonSNS(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := h.postAnomalyDetectedMessage(ctx, a); err != nil {
 			h.logger.Error("failed to post anomaly detected message", "error", err)
+			if !h.noErrorReport {
+				_, _, err := h.client.PostMessage(h.channel, slack.MsgOptionText(fmt.Sprintf("[error] failed to post anomaly detected message: %s", err), false))
+				if err != nil {
+					h.logger.Error("failed to post message", "error", err)
+				}
+			}
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
