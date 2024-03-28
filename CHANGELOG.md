@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.1](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.2.0...v0.2.1) - 2024-03-28
+- Bump github.com/stretchr/testify from 1.8.4 to 1.9.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/8
+
 ## [v0.2.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.1.0...v0.2.0) - 2024-03-28
 - Fix:ValidationException: end date past the beginning of next month by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/18
 - Bump github.com/aws/aws-sdk-go-v2/service/costexplorer from 1.34.0 to 1.36.2 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/16
