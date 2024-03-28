@@ -84,6 +84,22 @@ func (g *GraphGenerator) Generate(ctx context.Context, anomaly Anomaly) ([]io.Re
 	return graphs, nil
 }
 
+func firstDayOfNextMonth() time.Time {
+	now := time.Now()
+	nextMonth := now.Month() + 1
+	year := now.Year()
+
+	if nextMonth > 12 {
+		nextMonth = 1
+		year++
+	}
+	return time.Date(year, nextMonth, 1, 0, 0, 0, 0, time.Local)
+}
+
+func lastDayOfThisMonth() time.Time {
+	return firstDayOfNextMonth().Add(-time.Second)
+}
+
 func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time, c RootCause) (io.WriterTo, error) {
 	costLabel := []string{}
 	andExpr := []types.Expression{
@@ -130,6 +146,10 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 		})
 		costLabel = append(costLabel, c.UsageType)
 	}
+	// for ValidationException: end date past the beginning of next month
+	if endAt.After(lastDayOfThisMonth()) {
+		endAt = lastDayOfThisMonth()
+	}
 	input := &costexplorer.GetCostAndUsageInput{
 		Granularity: types.GranularityDaily,
 		TimePeriod: &types.DateInterval{
@@ -142,6 +162,7 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 		GroupBy: []types.GroupDefinition{},
 		Metrics: []string{"NET_UNBLENDED_COST"},
 	}
+	slog.Info("get cost and usage", "start_at", startAt, "end_at", endAt, "input", input)
 	paginator := costexplorerx.NewGetCostAndUsagePaginator(g.client, input)
 	costs := make(dateCosts, 0, 28)
 	dates := make([]string, 0, 28)
