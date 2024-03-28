@@ -13,6 +13,7 @@ type optionParams struct {
 	slackChannel      string
 	slackSignalSecret string
 	templateStr       string
+	noErrorReport     bool
 }
 
 type Option func(*optionParams)
@@ -50,5 +51,11 @@ func WithSlackSignalSecret(secret string) Option {
 func WithTemplate(template string) Option {
 	return func(args *optionParams) {
 		args.templateStr = template
+	}
+}
+
+func WithNoErrorReport() Option {
+	return func(args *optionParams) {
+		args.noErrorReport = true
 	}
 }
