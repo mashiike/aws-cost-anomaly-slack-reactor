@@ -163,8 +163,11 @@ func TestGraphGenerator(t *testing.T) {
 		goldie.WithNameSuffix(".golden.png"),
 	)
 	for i, graph := range graphs {
-		bs, err := io.ReadAll(graph)
+		bs, err := io.ReadAll(graph.r)
 		require.NoError(t, err)
 		g.Assert(t, fmt.Sprintf("graph%d", i), bs)
+		if graph.size != int64(len(bs)) {
+			t.Errorf("unexpected size graph%d: want=%d got=%d", i, graph.size, len(bs))
+		}
 	}
 }
