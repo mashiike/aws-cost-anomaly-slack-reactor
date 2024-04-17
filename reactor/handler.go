@@ -532,7 +532,7 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 		return fmt.Errorf("failed to create message: %w", err)
 	}
 	g := NewGraphGenerator(h.ce)
-	readers, err := g.Generate(ctx, a)
+	graphs, err := g.Generate(ctx, a)
 	if err != nil {
 		return fmt.Errorf("failed to generate graphs: %w", err)
 	}
@@ -542,17 +542,19 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 		return fmt.Errorf("failed to post message: %w", err)
 	}
 	h.logger.Info("post anomaly detected message", "anomaly_id", a.AnomalyID, "thread_ts", ts)
-	for i, r := range readers {
-		file, err := h.client.UploadFileContext(ctx, slack.FileUploadParameters{
-			Reader:          r,
-			Filename:        fmt.Sprintf("anomaly-%s-root-cause%d.png", a.AnomalyID, i+1),
-			Channels:        []string{h.channel},
+	for i, g := range graphs {
+		name := fmt.Sprintf("anomaly-%s-root-cause%d.png", a.AnomalyID, i+1)
+		file, err := h.client.UploadFileV2Context(ctx, slack.UploadFileV2Parameters{
+			Reader:          g.r,
+			Filename:        name,
+			FileSize:        int(g.size), // v2 API requires file size
+			Channel:         h.channel,
 			ThreadTimestamp: ts,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to upload file: %w", err)
 		}
-		h.logger.Info("upload file", "file_id", file.ID, "file_name", file.Name)
+		h.logger.Info("upload file", "file_id", file.ID, "file_name", name)
 	}
 	return nil
 }

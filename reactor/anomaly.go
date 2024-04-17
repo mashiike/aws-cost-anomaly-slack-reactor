@@ -58,6 +58,11 @@ type RootCause struct {
 	UsageType         string `json:"usageType"`
 }
 
+type Graph struct {
+	r    io.Reader
+	size int64
+}
+
 type GraphGenerator struct {
 	client costexplorerx.GetCostAndUsageAPIClient
 }
@@ -68,18 +73,19 @@ func NewGraphGenerator(client costexplorerx.GetCostAndUsageAPIClient) *GraphGene
 	}
 }
 
-func (g *GraphGenerator) Generate(ctx context.Context, anomaly Anomaly) ([]io.Reader, error) {
-	graphs := make([]io.Reader, 0, len(anomaly.RootCauses))
+func (g *GraphGenerator) Generate(ctx context.Context, anomaly Anomaly) ([]*Graph, error) {
+	graphs := make([]*Graph, 0, len(anomaly.RootCauses))
 	for _, c := range anomaly.RootCauses {
 		w, err := g.generate(ctx, anomaly.AnomalyStartDate.AddDate(0, 0, -8), anomaly.AnomalyEndDate.AddDate(0, 0, 8), c)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate graph: %w", err)
 		}
 		var buf bytes.Buffer
-		if _, err := w.WriteTo(&buf); err != nil {
+		n, err := w.WriteTo(&buf)
+		if err != nil {
 			return nil, fmt.Errorf("failed to write graph: %w", err)
 		}
-		graphs = append(graphs, &buf)
+		graphs = append(graphs, &Graph{r: &buf, size: n})
 	}
 	return graphs, nil
 }
