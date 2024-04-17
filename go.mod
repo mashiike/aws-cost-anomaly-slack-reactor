@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.9
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.37.1
 	github.com/aws/aws-sdk-go-v2/service/sns v1.29.3
-	github.com/aws/aws-sdk-go-v2/service/sts v1.28.5
+	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
 	github.com/fatih/color v1.16.0
 	github.com/fujiwara/ridge v0.9.0
 	github.com/gorilla/mux v1.8.1
@@ -36,9 +36,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/apigatewaymanagementapi v1.19.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.53.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.0 // indirect
