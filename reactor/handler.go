@@ -133,7 +133,14 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 		if err != nil {
 			return nil, err
 		}
-		params.logger.Info("running sloack bot", "bot_id", me.BotID, "bot_user_id", me.UserID)
+		params.logger.Info("running sloack bot",
+			"bot_id", me.BotID,
+			"bot_user_id", me.UserID,
+			"team_id", me.TeamID,
+			"user", me.User,
+			"team", me.Team,
+			"enterprise_id", me.EnterpriseID,
+		)
 		botID = me.BotID
 		botUserID = me.UserID
 	} else {
