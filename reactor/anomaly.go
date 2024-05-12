@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"image/color"
 	"io"
 	"log/slog"
 	"math"
@@ -19,7 +18,6 @@ import (
 	"github.com/mashiike/aws-cost-anomaly-slack-reactor/internal/costexplorerx"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
 )
 
 type Anomaly struct {
@@ -170,9 +168,8 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 	}
 	slog.Info("get cost and usage", "start_at", startAt, "end_at", endAt, "input", input)
 	paginator := costexplorerx.NewGetCostAndUsagePaginator(g.client, input)
-	costs := make(dateCosts, 0, 28)
-	dates := make([]string, 0, 28)
 	unit := ""
+	graph := NewCostGraph()
 	for paginator.HasMorePages() {
 		out, err := paginator.NextPage(ctx)
 		if err != nil {
@@ -192,27 +189,12 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 				return nil, err
 			}
 			unit = *netUnblendedCost.Unit
-			costs = append(costs, dateCost{Date: date, Cost: cost})
-			dates = append(dates, date.Format("2006-01-02"))
+			graph.AddDataPoint(date, cost, "NetUnblendedCost")
 		}
 	}
 	title := strings.Join(costLabel, ",")
 	slog.InfoContext(ctx, "generate graph", "title", title, "start_at", startAt, "end_at", endAt)
-	p := plot.New()
-	p.Title.Text = title
-	p.X.Label.Text = "Date"
-	p.X.Tick.Marker = dateTicker{Dates: dates}
-	p.Y.Label.Text = fmt.Sprintf("Cost (%s)", unit)
-
-	bars, err := plotter.NewBarChart(costs, vg.Points(20))
-	if err != nil {
-		return nil, err
-	}
-	bars.LineStyle.Width = vg.Length(0)
-	bars.Color = color.RGBA{R: 0, G: 128, B: 255, A: 255}
-	p.Add(bars)
-
-	w, err := p.WriterTo(10*vg.Inch, 4*vg.Inch, "png")
+	w, err := graph.WriteTo(title, fmt.Sprintf("Cost (%s)", unit))
 	if err != nil {
 		return nil, err
 	}
