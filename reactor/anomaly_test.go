@@ -3,18 +3,21 @@ package reactor
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
-	"github.com/sebdah/goldie/v2"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+var update = flag.Bool("update", false, "update .golden.png files")
 
 func TestAnomalyMarshalJSON(t *testing.T) {
 	bs, err := os.ReadFile("testdata/anomaly.json")
@@ -157,17 +160,23 @@ func TestGraphGenerator(t *testing.T) {
 	graphs, err := gen.Generate(ctx, a)
 	require.NoError(t, err)
 
-	g := goldie.New(
-		t,
-		goldie.WithFixtureDir("testdata/graphs"),
-		goldie.WithNameSuffix(".golden.png"),
-	)
 	for i, graph := range graphs {
 		bs, err := io.ReadAll(graph.r)
 		require.NoError(t, err)
-		g.Assert(t, fmt.Sprintf("graph%d", i), bs)
 		if graph.size != int64(len(bs)) {
 			t.Errorf("unexpected size graph%d: want=%d got=%d", i, graph.size, len(bs))
+		}
+		if *update {
+			os.MkdirAll("testdata/fixture/", 0755)
+			err := os.WriteFile(fmt.Sprintf("testdata/fixture/test_graph_generator_%d.golden.png", i), bs, 0644)
+			if err != nil {
+				t.Fatalf("failed to update golden file: %v", err)
+			}
+		}
+		expected, err := os.ReadFile(fmt.Sprintf("testdata/fixture/test_graph_generator_%d.golden.png", i))
+		require.NoError(t, err)
+		if !reflect.DeepEqual(expected, bs) {
+			t.Errorf("unexpected graph%d", i)
 		}
 	}
 }
