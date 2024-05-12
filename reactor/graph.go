@@ -71,19 +71,24 @@ func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 			totals[legend] += dp[date]
 		}
 	}
+	// sort by total cost
+	sort.Slice(legends, func(i, j int) bool {
+		totalI := totals[legends[i]]
+		totalJ := totals[legends[j]]
+		if totalI == totalJ {
+			return legends[i] < legends[j]
+		}
+		return totalI > totalJ
+	})
 	// if too many series, combine into "others"
 	if len(dataPoints) > maxSeries {
-		// sort by total cost, remains is Top9
-		sort.Slice(legends, func(i, j int) bool {
-			return totals[legends[i]] > totals[legends[j]]
-		})
 		legends = legends[:maxSeries-1]
 		// combine others
-		others := make(plotter.Values, 0, g.ticker.Len())
+		others := make(plotter.Values, g.ticker.Len())
 		after := make(map[string]plotter.Values, maxSeries)
-		isTop := func(legend string) bool {
+		isTop := func(ll string) bool {
 			for _, l := range legends {
-				if l == legend {
+				if l == ll {
 					return true
 				}
 			}
@@ -100,6 +105,7 @@ func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 		}
 		after["Others"] = others
 		dataPoints = after
+		legends = append(legends, "Others")
 	}
 	// generate plot
 	p := plot.New()
@@ -108,11 +114,17 @@ func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 	p.X.Tick.Marker = &g.ticker
 	p.Y.Label.Text = yLabel
 	colorIndex := 0
-	for legend, dp := range dataPoints {
+	var stack *plotter.BarChart
+	for _, legend := range legends {
+		dp := dataPoints[legend]
 		bars, err := plotter.NewBarChart(dp, vg.Points(20))
 		if err != nil {
 			return nil, err
 		}
+		if stack != nil {
+			bars.StackOn(stack)
+		}
+		stack = bars
 		bars.LineStyle.Width = 0
 		var c color.RGBA
 		if colorIndex < len(graphColors) {
@@ -120,6 +132,7 @@ func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 		} else {
 			c = color.RGBA{R: 0, G: 128, B: 255, A: 255}
 		}
+		colorIndex++
 		bars.Color = c
 		p.Add(bars)
 		if len(dataPoints) > 1 {
@@ -127,7 +140,11 @@ func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 		}
 	}
 	p.Title.Padding = vg.Points(10)
+	if len(dataPoints) > 1 {
+		p.X.Max += 1
+	}
 	p.Legend.Top = true
+	p.Legend.TextStyle.Font.Size = vg.Points(8)
 	w, err := p.WriterTo(vg.Points(800), vg.Points(400), "png")
 	if err != nil {
 		return nil, err

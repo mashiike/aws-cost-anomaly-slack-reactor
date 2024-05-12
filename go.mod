@@ -4,6 +4,7 @@ go 1.21.0
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
+	github.com/aws/aws-sdk-go v1.51.9
 	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.37.1
@@ -16,7 +17,6 @@ require (
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
 	github.com/mashiike/canyon v0.7.1
 	github.com/mashiike/slogutils v0.4.0
-	github.com/sebdah/goldie/v2 v2.5.3
 	github.com/slack-go/slack v0.12.5
 	github.com/stretchr/testify v1.9.0
 	gonum.org/v1/plot v0.14.0
@@ -26,7 +26,6 @@ require (
 	git.sr.ht/~sbinet/gg v0.5.0 // indirect
 	github.com/Songmu/flextime v0.1.0 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
-	github.com/aws/aws-sdk-go v1.51.9 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.11 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.1 // indirect
@@ -61,7 +60,6 @@ require (
 	github.com/pires/go-proxyproto v0.7.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/net v0.23.0 // indirect

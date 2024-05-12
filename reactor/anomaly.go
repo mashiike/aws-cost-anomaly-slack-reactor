@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -16,8 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
 	"github.com/mashiike/aws-cost-anomaly-slack-reactor/internal/costexplorerx"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
 )
 
 type Anomaly struct {
@@ -180,16 +177,35 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse point date: %w", err)
 			}
-			netUnblendedCost, ok := data.Total["NetUnblendedCost"]
-			if !ok {
-				return nil, errors.New("NetUnblendedCost not found")
+			if len(data.Groups) == 0 {
+				netUnblendedCost, ok := data.Total["NetUnblendedCost"]
+				if !ok {
+					return nil, errors.New("NetUnblendedCost not found")
+				}
+				cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
+				if err != nil {
+					return nil, err
+				}
+				unit = *netUnblendedCost.Unit
+				graph.AddDataPoint(date, cost, "NetUnblendedCost")
+			} else {
+				for _, group := range data.Groups {
+					l := "(unknown)"
+					if len(group.Keys) > 0 {
+						l = group.Keys[0]
+					}
+					netUnblendedCost, ok := group.Metrics["NetUnblendedCost"]
+					if !ok {
+						return nil, errors.New("NetUnblendedCost not found")
+					}
+					cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
+					if err != nil {
+						return nil, err
+					}
+					unit = *netUnblendedCost.Unit
+					graph.AddDataPoint(date, cost, l)
+				}
 			}
-			cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
-			if err != nil {
-				return nil, err
-			}
-			unit = *netUnblendedCost.Unit
-			graph.AddDataPoint(date, cost, "NetUnblendedCost")
 		}
 	}
 	title := strings.Join(costLabel, ",")
@@ -199,44 +215,4 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 		return nil, err
 	}
 	return w, nil
-}
-
-type dateCost struct {
-	Date time.Time
-	Cost float64
-}
-
-type dateCosts []dateCost
-
-var _ plotter.Valuer = dateCosts(nil)
-
-func (dc dateCosts) Len() int {
-	return len(dc)
-}
-
-func (dc dateCosts) Value(i int) float64 {
-	return dc[i].Cost
-}
-
-type dateTicker struct {
-	Dates []string
-}
-
-func (dt dateTicker) Ticks(min, max float64) []plot.Tick {
-	maxLabels := 8
-	interval := int(math.Ceil(float64(len(dt.Dates)) / float64(maxLabels)))
-	var ticks []plot.Tick
-	for i, date := range dt.Dates {
-		if float64(i) >= min && float64(i) <= max {
-			tick := plot.Tick{
-				Value: float64(i),
-				Label: date,
-			}
-			if int(float64(i)-min)%interval != 0 {
-				tick.Label = ""
-			}
-			ticks = append(ticks, tick)
-		}
-	}
-	return ticks
 }
