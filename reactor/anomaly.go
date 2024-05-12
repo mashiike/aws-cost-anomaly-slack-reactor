@@ -83,19 +83,19 @@ func NewGraphGenerator(client costexplorerx.GetCostAndUsageAPIClient, org Descri
 	}
 }
 
-func (g *GraphGenerator) describeAccount(ctx context.Context, accountId string) (*organizations.DescribeAccountOutput, error) {
+func (g *GraphGenerator) describeAccount(ctx context.Context, accountID string) (*organizations.DescribeAccountOutput, error) {
 	g.cacheDescribeAccountMu.Lock()
 	defer g.cacheDescribeAccountMu.Unlock()
-	if expire, ok := g.cacheDescribeAccountExpire[accountId]; ok && time.Now().Before(expire) {
-		return g.cacheDescribeAccountOutput[accountId], g.cacheDescribeAccountError[accountId]
+	if expire, ok := g.cacheDescribeAccountExpire[accountID]; ok && time.Now().Before(expire) {
+		return g.cacheDescribeAccountOutput[accountID], g.cacheDescribeAccountError[accountID]
 	}
-	out, err := g.org.DescribeAccount(ctx, &organizations.DescribeAccountInput{AccountId: aws.String(accountId)})
-	g.cacheDescribeAccountExpire[accountId] = time.Now().Add(1 * time.Hour)
+	out, err := g.org.DescribeAccount(ctx, &organizations.DescribeAccountInput{AccountId: aws.String(accountID)})
+	g.cacheDescribeAccountExpire[accountID] = time.Now().Add(1 * time.Hour)
 	if err != nil {
-		g.cacheDescribeAccountError[accountId] = err
+		g.cacheDescribeAccountError[accountID] = err
 		return nil, err
 	}
-	g.cacheDescribeAccountOutput[accountId] = out
+	g.cacheDescribeAccountOutput[accountID] = out
 	return out, nil
 }
 
@@ -236,7 +236,7 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 							groupLabels = append(groupLabels, fmt.Sprintf("%s (%s)", *desc.Account.Name, v))
 						}
 					}
-					var l string = "(unknown)"
+					l := "(unknown)"
 					if len(groupLabels) > 0 {
 						l = strings.Join(groupLabels, ",")
 					}
