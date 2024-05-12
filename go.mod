@@ -7,10 +7,11 @@ require (
 	github.com/aws/aws-sdk-go v1.51.9
 	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
-	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.37.1
+	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.38.0
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.4
 	github.com/aws/aws-sdk-go-v2/service/sns v1.29.4
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
+	github.com/aws/smithy-go v1.20.2
 	github.com/fatih/color v1.16.0
 	github.com/fujiwara/ridge v0.9.0
 	github.com/gorilla/mux v1.8.1
@@ -46,7 +47,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.31.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.20.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.23.4 // indirect
-	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/campoy/embedmd v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-fonts/liberation v0.3.2 // indirect
