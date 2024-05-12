@@ -5,21 +5,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"image/color"
 	"io"
 	"log/slog"
-	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
+	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/mashiike/aws-cost-anomaly-slack-reactor/internal/costexplorerx"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
 )
 
 type Anomaly struct {
@@ -63,14 +60,43 @@ type Graph struct {
 	size int64
 }
 
-type GraphGenerator struct {
-	client costexplorerx.GetCostAndUsageAPIClient
+type DescribeAccountAPIClient interface {
+	DescribeAccount(ctx context.Context, input *organizations.DescribeAccountInput, optFns ...func(*organizations.Options)) (*organizations.DescribeAccountOutput, error)
 }
 
-func NewGraphGenerator(client costexplorerx.GetCostAndUsageAPIClient) *GraphGenerator {
+type GraphGenerator struct {
+	client                     costexplorerx.GetCostAndUsageAPIClient
+	org                        DescribeAccountAPIClient
+	cacheDescribeAccountOutput map[string]*organizations.DescribeAccountOutput
+	cacheDescribeAccountError  map[string]error
+	cacheDescribeAccountMu     sync.Mutex
+	cacheDescribeAccountExpire map[string]time.Time
+}
+
+func NewGraphGenerator(client costexplorerx.GetCostAndUsageAPIClient, org DescribeAccountAPIClient) *GraphGenerator {
 	return &GraphGenerator{
-		client: client,
+		client:                     client,
+		org:                        org,
+		cacheDescribeAccountOutput: make(map[string]*organizations.DescribeAccountOutput),
+		cacheDescribeAccountError:  make(map[string]error),
+		cacheDescribeAccountExpire: make(map[string]time.Time),
 	}
+}
+
+func (g *GraphGenerator) describeAccount(ctx context.Context, accountID string) (*organizations.DescribeAccountOutput, error) {
+	g.cacheDescribeAccountMu.Lock()
+	defer g.cacheDescribeAccountMu.Unlock()
+	if expire, ok := g.cacheDescribeAccountExpire[accountID]; ok && time.Now().Before(expire) {
+		return g.cacheDescribeAccountOutput[accountID], g.cacheDescribeAccountError[accountID]
+	}
+	out, err := g.org.DescribeAccount(ctx, &organizations.DescribeAccountInput{AccountId: aws.String(accountID)})
+	g.cacheDescribeAccountExpire[accountID] = time.Now().Add(1 * time.Hour)
+	if err != nil {
+		g.cacheDescribeAccountError[accountID] = err
+		return nil, err
+	}
+	g.cacheDescribeAccountOutput[accountID] = out
+	return out, nil
 }
 
 func (g *GraphGenerator) Generate(ctx context.Context, anomaly Anomaly) ([]*Graph, error) {
@@ -170,9 +196,8 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 	}
 	slog.Info("get cost and usage", "start_at", startAt, "end_at", endAt, "input", input)
 	paginator := costexplorerx.NewGetCostAndUsagePaginator(g.client, input)
-	costs := make(dateCosts, 0, 28)
-	dates := make([]string, 0, 28)
 	unit := ""
+	graph := NewCostGraph()
 	for paginator.HasMorePages() {
 		out, err := paginator.NextPage(ctx)
 		if err != nil {
@@ -183,78 +208,57 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse point date: %w", err)
 			}
-			netUnblendedCost, ok := data.Total["NetUnblendedCost"]
-			if !ok {
-				return nil, errors.New("NetUnblendedCost not found")
+			if len(data.Groups) == 0 {
+				netUnblendedCost, ok := data.Total["NetUnblendedCost"]
+				if !ok {
+					return nil, errors.New("NetUnblendedCost not found")
+				}
+				cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
+				if err != nil {
+					return nil, err
+				}
+				unit = *netUnblendedCost.Unit
+				graph.AddDataPoint(date, cost, "NetUnblendedCost")
+			} else {
+				for _, group := range data.Groups {
+					var groupLabels []string
+					for keyIndex, v := range group.Keys {
+						k := *out.GroupDefinitions[keyIndex].Key
+						if k != "LINKED_ACCOUNT" {
+							groupLabels = append(groupLabels, v)
+							continue
+						}
+						desc, err := g.describeAccount(ctx, v)
+						if err != nil {
+							slog.Warn("failed to describe account", "account_id", v, "error", err)
+							groupLabels = append(groupLabels, v)
+						} else {
+							groupLabels = append(groupLabels, fmt.Sprintf("%s (%s)", *desc.Account.Name, v))
+						}
+					}
+					l := "(unknown)"
+					if len(groupLabels) > 0 {
+						l = strings.Join(groupLabels, ",")
+					}
+					netUnblendedCost, ok := group.Metrics["NetUnblendedCost"]
+					if !ok {
+						return nil, errors.New("NetUnblendedCost not found")
+					}
+					cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
+					if err != nil {
+						return nil, err
+					}
+					unit = *netUnblendedCost.Unit
+					graph.AddDataPoint(date, cost, l)
+				}
 			}
-			cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
-			if err != nil {
-				return nil, err
-			}
-			unit = *netUnblendedCost.Unit
-			costs = append(costs, dateCost{Date: date, Cost: cost})
-			dates = append(dates, date.Format("2006-01-02"))
 		}
 	}
 	title := strings.Join(costLabel, ",")
 	slog.InfoContext(ctx, "generate graph", "title", title, "start_at", startAt, "end_at", endAt)
-	p := plot.New()
-	p.Title.Text = title
-	p.X.Label.Text = "Date"
-	p.X.Tick.Marker = dateTicker{Dates: dates}
-	p.Y.Label.Text = fmt.Sprintf("Cost (%s)", unit)
-
-	bars, err := plotter.NewBarChart(costs, vg.Points(20))
-	if err != nil {
-		return nil, err
-	}
-	bars.LineStyle.Width = vg.Length(0)
-	bars.Color = color.RGBA{R: 0, G: 128, B: 255, A: 255}
-	p.Add(bars)
-
-	w, err := p.WriterTo(10*vg.Inch, 4*vg.Inch, "png")
+	w, err := graph.WriteTo(title, fmt.Sprintf("Cost (%s)", unit))
 	if err != nil {
 		return nil, err
 	}
 	return w, nil
-}
-
-type dateCost struct {
-	Date time.Time
-	Cost float64
-}
-
-type dateCosts []dateCost
-
-var _ plotter.Valuer = dateCosts(nil)
-
-func (dc dateCosts) Len() int {
-	return len(dc)
-}
-
-func (dc dateCosts) Value(i int) float64 {
-	return dc[i].Cost
-}
-
-type dateTicker struct {
-	Dates []string
-}
-
-func (dt dateTicker) Ticks(min, max float64) []plot.Tick {
-	maxLabels := 8
-	interval := int(math.Ceil(float64(len(dt.Dates)) / float64(maxLabels)))
-	var ticks []plot.Tick
-	for i, date := range dt.Dates {
-		if float64(i) >= min && float64(i) <= max {
-			tick := plot.Tick{
-				Value: float64(i),
-				Label: date,
-			}
-			if int(float64(i)-min)%interval != 0 {
-				tick.Label = ""
-			}
-			ticks = append(ticks, tick)
-		}
-	}
-	return ticks
 }
