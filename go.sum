@@ -48,6 +48,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.4 h1:uDj2K47EM1reAY
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.4/go.mod h1:XKCODf4RKHppc96c2EZBGV/oCUC7OClxAo2MEyg4pIk=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.53.3 h1:KsKBuL+bIKhY7SMk+MXSBAj8PLHsTqlU2d0px98azyI=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.53.3/go.mod h1:trTURvQC8AJ41JYhFpVrZKY5tfzGgVUcSijVgfmgl8w=
+github.com/aws/aws-sdk-go-v2/service/organizations v1.27.4 h1:MHpLeZfS9EjQYD5QCbwEzZwQjeP5gZNSb2qmZca7cBM=
+github.com/aws/aws-sdk-go-v2/service/organizations v1.27.4/go.mod h1:hUHSXe9HFEmLfHrXndAX5e69rv0nBsg22VuNQYl0JLM=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.53.0 h1:r3o2YsgW9zRcIP3Q0WCmttFVhTuugeKIvT5z9xDspc0=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.53.0/go.mod h1:w2E4f8PUfNtyjfL6Iu+mWI96FGttE03z3UdNcUEC4tA=
 github.com/aws/aws-sdk-go-v2/service/scheduler v1.8.3 h1:PDlINUkjxH/eMLVDUMFOQJBMkB3BbTwNjUWKeq2xH8E=

@@ -13,6 +13,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
+	"github.com/aws/aws-sdk-go-v2/service/organizations"
+	organizationstypes "github.com/aws/aws-sdk-go-v2/service/organizations/types"
+	"github.com/aws/smithy-go"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -51,6 +54,25 @@ func (m *mockGetCostAndUsageAPIClient) GetCostAndUsage(ctx context.Context, para
 	return ret, err
 }
 
+type mockDescribeAccountAPIClient struct {
+	mock.Mock
+	t *testing.T
+}
+
+func (m *mockDescribeAccountAPIClient) DescribeAccount(ctx context.Context, params *organizations.DescribeAccountInput, _ ...func(*organizations.Options)) (*organizations.DescribeAccountOutput, error) {
+	args := m.Called(ctx, params)
+	output := args.Get(0)
+	err := args.Error(1)
+	if output == nil {
+		return nil, err
+	}
+	ret, ok := output.(*organizations.DescribeAccountOutput)
+	if !ok {
+		m.t.Fatalf("unexpected type: %T", output)
+	}
+	return ret, err
+}
+
 func TestGraphGenerator(t *testing.T) {
 	bs, err := os.ReadFile("testdata/anomaly.json")
 	require.NoError(t, err)
@@ -59,7 +81,9 @@ func TestGraphGenerator(t *testing.T) {
 	require.NoError(t, err)
 
 	mockClient := mockGetCostAndUsageAPIClient{t: t}
+	mockOrgClient := mockDescribeAccountAPIClient{t: t}
 	defer mockClient.AssertExpectations(t)
+	defer mockOrgClient.AssertExpectations(t)
 	mockClient.On("GetCostAndUsage", mock.Anything, &costexplorer.GetCostAndUsageInput{
 		Granularity: types.GranularityDaily,
 		Metrics:     []string{"NET_UNBLENDED_COST"},
@@ -155,7 +179,7 @@ func TestGraphGenerator(t *testing.T) {
 		},
 	}, nil)
 
-	gen := NewGraphGenerator(&mockClient)
+	gen := NewGraphGenerator(&mockClient, &mockOrgClient)
 	ctx := context.Background()
 	graphs, err := gen.Generate(ctx, a)
 	require.NoError(t, err)
@@ -189,7 +213,10 @@ func TestGraphGeneratorForOrganization(t *testing.T) {
 	require.NoError(t, err)
 
 	mockClient := mockGetCostAndUsageAPIClient{t: t}
+	mockOrgClient := mockDescribeAccountAPIClient{t: t}
 	defer mockClient.AssertExpectations(t)
+	defer mockOrgClient.AssertExpectations(t)
+
 	mockClient.On("GetCostAndUsage", mock.Anything, &costexplorer.GetCostAndUsageInput{
 		Granularity: types.GranularityDaily,
 		Metrics:     []string{"NET_UNBLENDED_COST"},
@@ -432,7 +459,40 @@ func TestGraphGeneratorForOrganization(t *testing.T) {
 		},
 	}, nil)
 
-	gen := NewGraphGenerator(&mockClient)
+	awsAccounts := map[string]string{
+		"123456789012": "aws-account1",
+		"234567890123": "aws-account2",
+		"345678901234": "aws-account3",
+		"456789012345": "aws-account4",
+		"567890123456": "aws-account5",
+		"321098765432": "aws-account8",
+		"432109876543": "aws-account9",
+		"543210987654": "aws-account10",
+		"643210987652": "aws-account11",
+		"743210987651": "aws-account12",
+	}
+	for accountID, accountName := range awsAccounts {
+		mockOrgClient.On("DescribeAccount", mock.Anything, &organizations.DescribeAccountInput{
+			AccountId: aws.String(accountID),
+		}).Return(&organizations.DescribeAccountOutput{
+			Account: &organizationstypes.Account{
+				Arn:   aws.String(fmt.Sprintf("arn:aws:organizations::123456789012:account/%s", accountName)),
+				Email: aws.String(fmt.Sprintf("%s@example.com", accountName)),
+				Id:    aws.String(accountID),
+				Name:  aws.String(accountName),
+			},
+		}, nil).Times(1)
+	}
+	accessDenidedAWSAccounts := []string{
+		"678901234567",
+		"890123456789",
+	}
+	for _, accountID := range accessDenidedAWSAccounts {
+		mockOrgClient.On("DescribeAccount", mock.Anything, &organizations.DescribeAccountInput{
+			AccountId: aws.String(accountID),
+		}).Return(nil, &smithy.GenericAPIError{Code: "AccessDeniedException"}).Times(1)
+	}
+	gen := NewGraphGenerator(&mockClient, &mockOrgClient)
 	ctx := context.Background()
 	graphs, err := gen.Generate(ctx, a)
 	require.NoError(t, err)

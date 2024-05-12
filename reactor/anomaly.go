@@ -9,11 +9,13 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
+	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/mashiike/aws-cost-anomaly-slack-reactor/internal/costexplorerx"
 )
 
@@ -58,14 +60,43 @@ type Graph struct {
 	size int64
 }
 
-type GraphGenerator struct {
-	client costexplorerx.GetCostAndUsageAPIClient
+type DescribeAccountAPIClient interface {
+	DescribeAccount(ctx context.Context, input *organizations.DescribeAccountInput, optFns ...func(*organizations.Options)) (*organizations.DescribeAccountOutput, error)
 }
 
-func NewGraphGenerator(client costexplorerx.GetCostAndUsageAPIClient) *GraphGenerator {
+type GraphGenerator struct {
+	client                     costexplorerx.GetCostAndUsageAPIClient
+	org                        DescribeAccountAPIClient
+	cacheDescribeAccountOutput map[string]*organizations.DescribeAccountOutput
+	cacheDescribeAccountError  map[string]error
+	cacheDescribeAccountMu     sync.Mutex
+	cacheDescribeAccountExpire map[string]time.Time
+}
+
+func NewGraphGenerator(client costexplorerx.GetCostAndUsageAPIClient, org DescribeAccountAPIClient) *GraphGenerator {
 	return &GraphGenerator{
-		client: client,
+		client:                     client,
+		org:                        org,
+		cacheDescribeAccountOutput: make(map[string]*organizations.DescribeAccountOutput),
+		cacheDescribeAccountError:  make(map[string]error),
+		cacheDescribeAccountExpire: make(map[string]time.Time),
 	}
+}
+
+func (g *GraphGenerator) describeAccount(ctx context.Context, accountId string) (*organizations.DescribeAccountOutput, error) {
+	g.cacheDescribeAccountMu.Lock()
+	defer g.cacheDescribeAccountMu.Unlock()
+	if expire, ok := g.cacheDescribeAccountExpire[accountId]; ok && time.Now().Before(expire) {
+		return g.cacheDescribeAccountOutput[accountId], g.cacheDescribeAccountError[accountId]
+	}
+	out, err := g.org.DescribeAccount(ctx, &organizations.DescribeAccountInput{AccountId: aws.String(accountId)})
+	g.cacheDescribeAccountExpire[accountId] = time.Now().Add(1 * time.Hour)
+	if err != nil {
+		g.cacheDescribeAccountError[accountId] = err
+		return nil, err
+	}
+	g.cacheDescribeAccountOutput[accountId] = out
+	return out, nil
 }
 
 func (g *GraphGenerator) Generate(ctx context.Context, anomaly Anomaly) ([]*Graph, error) {
@@ -190,9 +221,24 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 				graph.AddDataPoint(date, cost, "NetUnblendedCost")
 			} else {
 				for _, group := range data.Groups {
-					l := "(unknown)"
-					if len(group.Keys) > 0 {
-						l = group.Keys[0]
+					var groupLabels []string
+					for keyIndex, v := range group.Keys {
+						k := *out.GroupDefinitions[keyIndex].Key
+						if k != "LINKED_ACCOUNT" {
+							groupLabels = append(groupLabels, v)
+							continue
+						}
+						desc, err := g.describeAccount(ctx, v)
+						if err != nil {
+							slog.Warn("failed to describe account", "account_id", v, "error", err)
+							groupLabels = append(groupLabels, v)
+						} else {
+							groupLabels = append(groupLabels, fmt.Sprintf("%s (%s)", *desc.Account.Name, v))
+						}
+					}
+					var l string = "(unknown)"
+					if len(groupLabels) > 0 {
+						l = strings.Join(groupLabels, ",")
 					}
 					netUnblendedCost, ok := group.Metrics["NetUnblendedCost"]
 					if !ok {

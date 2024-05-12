@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
+	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gorilla/mux"
@@ -32,6 +33,7 @@ import (
 
 type Handler struct {
 	ce            *costexplorer.Client
+	org           *organizations.Client
 	client        *slack.Client
 	logger        *slog.Logger
 	router        *mux.Router
@@ -149,6 +151,7 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	router := mux.NewRouter()
 	h := &Handler{
 		ce:            costexplorer.NewFromConfig(*params.awsCfg),
+		org:           organizations.NewFromConfig(*params.awsCfg),
 		logger:        params.logger.With("component", "handler"),
 		router:        router,
 		client:        client,
@@ -538,7 +541,7 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 	if err != nil {
 		return fmt.Errorf("failed to create message: %w", err)
 	}
-	g := NewGraphGenerator(h.ce)
+	g := NewGraphGenerator(h.ce, h.org)
 	graphs, err := g.Generate(ctx, a)
 	if err != nil {
 		return fmt.Errorf("failed to generate graphs: %w", err)

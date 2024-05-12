@@ -141,7 +141,7 @@ func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 	}
 	p.Title.Padding = vg.Points(10)
 	if len(dataPoints) > 1 {
-		p.X.Max += 1
+		p.X.Max += 2
 	}
 	p.Legend.Top = true
 	p.Legend.TextStyle.Font.Size = vg.Points(8)
