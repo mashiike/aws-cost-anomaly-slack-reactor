@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.4.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.3.0...v0.4.0) - 2024-05-12
+- Bump the aws-sdk-go-v2 group with 4 updates by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/31
+- Bump github.com/aws/aws-lambda-go from 1.46.0 to 1.47.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/34
+- Bump golang.org/x/net from 0.22.0 to 0.23.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/33
+- add info to log. for debug user name and team by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/36
+- modify workflow for manual release by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/35
+- Bump github.com/aws/aws-sdk-go-v2/service/costexplorer from 1.37.1 to 1.38.0 in the aws-sdk-go-v2 group by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/37
+- RouteCase Linked Account not set, Graph generate with Group By Linked Account by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/38
+
 ## [v0.3.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.2.0...v0.3.0) - 2024-04-17
 - Bump github.com/stretchr/testify from 1.8.4 to 1.9.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/8
 - switch to UploadFileV2 API by @fujiwara in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/28
