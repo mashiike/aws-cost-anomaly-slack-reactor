@@ -4,12 +4,12 @@ go 1.21.0
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
-	github.com/aws/aws-sdk-go-v2 v1.26.1
-	github.com/aws/aws-sdk-go-v2/config v1.27.13
-	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.38.1
-	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.4
-	github.com/aws/aws-sdk-go-v2/service/sns v1.29.5
-	github.com/aws/aws-sdk-go-v2/service/sts v1.28.7
+	github.com/aws/aws-sdk-go-v2 v1.27.0
+	github.com/aws/aws-sdk-go-v2/config v1.27.15
+	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.38.3
+	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.6
+	github.com/aws/aws-sdk-go-v2/service/sns v1.29.7
+	github.com/aws/aws-sdk-go-v2/service/sts v1.28.9
 	github.com/aws/smithy-go v1.20.2
 	github.com/fatih/color v1.16.0
 	github.com/fujiwara/ridge v0.9.0
@@ -29,24 +29,24 @@ require (
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/aws/aws-sdk-go v1.51.9 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.1 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.13 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.1 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.15 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.3 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.16.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.5 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.5 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/apigatewaymanagementapi v1.19.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.53.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.31.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.20.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.20.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.2 // indirect
 	github.com/campoy/embedmd v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-fonts/liberation v0.3.2 // indirect
