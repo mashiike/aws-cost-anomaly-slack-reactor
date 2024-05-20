@@ -18,7 +18,7 @@ require (
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
 	github.com/mashiike/canyon v0.7.1
 	github.com/mashiike/slogutils v0.4.0
-	github.com/slack-go/slack v0.12.5
+	github.com/slack-go/slack v0.13.0
 	github.com/stretchr/testify v1.9.0
 	gonum.org/v1/plot v0.14.0
 )
