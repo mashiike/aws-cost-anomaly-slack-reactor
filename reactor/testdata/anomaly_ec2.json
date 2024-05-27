@@ -22,7 +22,7 @@
           "linkedAccount": "123456789012",
           "linkedAccountName": "test",
           "region": "ap-northeast-1",
-          "service": "Amazon Relational Database Service",
+          "service": "Amazon Elastic Compute Cloud - Compute",
           "usageType": "AnomalousUsageType"
       }
   ],

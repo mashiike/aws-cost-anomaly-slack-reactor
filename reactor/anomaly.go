@@ -138,12 +138,42 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 	if err != nil {
 		return nil, fmt.Errorf("failed to render graph: %w", err)
 	}
+	if g.IsSavingsPlanApplied(c) && c.LinkedAccount != "" {
+		// render graph without SavingsPlan
+		_, _, err = g.renderGraph(ctx, graph, startAt, endAt, c, " (without SavingsPlan)", []types.Expression{
+			{
+				Not: &types.Expression{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionRecordType,
+						Values: []string{"SavingsPlanNegation"},
+					},
+				},
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to render graph without SavingsPlan: %w", err)
+		}
+		graph.EnableStack = false
+	}
 	slog.InfoContext(ctx, "generate graph", "title", title, "start_at", startAt, "end_at", endAt)
 	w, err := graph.WriteTo(title, fmt.Sprintf("Cost (%s)", unit))
 	if err != nil {
 		return nil, err
 	}
 	return w, nil
+}
+
+func (g *GraphGenerator) IsSavingsPlanApplied(c RootCause) bool {
+	if strings.Contains(c.Service, "Amazon Elastic Compute Cloud") {
+		return true
+	}
+	if strings.Contains(c.Service, "Amazon Elastic Container Service") {
+		return true
+	}
+	if strings.Contains(c.Service, "AWS Lambda") {
+		return true
+	}
+	return false
 }
 
 func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, startAt, endAt time.Time, c RootCause, extraLabel string, extraFilters []types.Expression) (string, string, error) {

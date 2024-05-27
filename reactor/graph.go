@@ -14,9 +14,10 @@ import (
 )
 
 type CostGraph struct {
-	mu         sync.Mutex
-	ticker     graphTicker
-	dataPoints map[string]map[time.Time]float64
+	mu          sync.Mutex
+	ticker      graphTicker
+	dataPoints  map[string]map[time.Time]float64
+	EnableStack bool
 }
 
 func NewCostGraph() *CostGraph {
@@ -25,6 +26,7 @@ func NewCostGraph() *CostGraph {
 		ticker: graphTicker{
 			dates: make(map[time.Time]struct{}),
 		},
+		EnableStack: true,
 	}
 }
 
@@ -114,15 +116,27 @@ func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 	p.X.Tick.Marker = &g.ticker
 	p.Y.Label.Text = yLabel
 	colorIndex := 0
+	nBars := len(legends)
 	var stack *plotter.BarChart
-	for _, legend := range legends {
+	for i, legend := range legends {
 		dp := dataPoints[legend]
 		bars, err := plotter.NewBarChart(dp, vg.Points(20))
 		if err != nil {
 			return nil, err
 		}
-		if stack != nil {
+		if stack != nil && g.EnableStack {
 			bars.StackOn(stack)
+		}
+		if !g.EnableStack {
+			var offset float64
+			if nBars%2 == 0 {
+				offset = 10
+			}
+			if i < nBars/2 {
+				bars.Offset = vg.Points(-20*float64(nBars/2-i) + offset)
+			} else if i >= nBars/2 {
+				bars.Offset = vg.Points(20*float64(i-nBars/2) + offset)
+			}
 		}
 		stack = bars
 		bars.LineStyle.Width = 0
