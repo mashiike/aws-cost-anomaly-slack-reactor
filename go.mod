@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.29.5
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.7
 	github.com/aws/smithy-go v1.20.2
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.17.0
 	github.com/fujiwara/ridge v0.9.0
 	github.com/gorilla/mux v1.8.1
 	github.com/handlename/ssmwrap v1.2.1
