@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.5.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.4.0...v0.5.0) - 2024-05-27
+- Bump the aws-sdk-go-v2 group with 4 updates by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/39
+- Enhance Anomaly Detection by Visualizing Cost Trends Excluding Savings Plan for Specific Services by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/46
+- Bump github.com/slack-go/slack from 0.12.5 to 0.13.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/45
+- Bump github.com/fatih/color from 1.16.0 to 1.17.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/41
+- Bump the aws-sdk-go-v2 group with 5 updates by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/43
+
 ## [v0.4.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.3.0...v0.4.0) - 2024-05-12
 - Bump the aws-sdk-go-v2 group with 4 updates by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/31
 - Bump github.com/aws/aws-lambda-go from 1.46.0 to 1.47.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/34
