@@ -40,15 +40,17 @@ func main() {
 		}
 	}
 	var (
-		logLevel       string
-		address        string
-		prefix         string
-		sqs_queue_name string
+		logLevel          string
+		address           string
+		prefix            string
+		sqsQueueName      string
+		dynamodbTableName string
 	)
 	flag.StringVar(&logLevel, "log-level", "info", "log level")
 	flag.StringVar(&address, "address", ":8080", "listen address")
 	flag.StringVar(&prefix, "prefix", "/", "path prefix")
-	flag.StringVar(&sqs_queue_name, "sqs-queue-name", "", "SQS queue name")
+	flag.StringVar(&sqsQueueName, "sqs-queue-name", "", "SQS queue name")
+	flag.StringVar(&dynamodbTableName, "dynamodb-table-name", "", "DynamoDB table name")
 	flag.VisitAll(flagx.EnvToFlag)
 	flag.Parse()
 	var minLevel slog.Level
@@ -83,14 +85,18 @@ func main() {
 	slog.Info("setup logger", "level", minLevel)
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	h, err := reactor.New(ctx)
+	var opts []reactor.Option
+	if dynamodbTableName != "" {
+		opts = append(opts, reactor.WithDynamoDBTableName(dynamodbTableName))
+	}
+	h, err := reactor.New(ctx, opts...)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if sqs_queue_name == "" {
+	if sqsQueueName == "" {
 		ridge.RunWithContext(ctx, address, prefix, h)
 	} else {
-		canyon.RunWithContext(ctx, sqs_queue_name, h,
+		canyon.RunWithContext(ctx, sqsQueueName, h,
 			canyon.WithServerAddress(address, prefix),
 			canyon.WithCanyonEnv("CANYON_"),
 		)

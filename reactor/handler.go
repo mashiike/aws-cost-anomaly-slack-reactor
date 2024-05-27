@@ -32,18 +32,19 @@ import (
 )
 
 type Handler struct {
-	ce            *costexplorer.Client
-	org           *organizations.Client
-	client        *slack.Client
-	logger        *slog.Logger
-	router        *mux.Router
-	channel       string
-	botUserID     string
-	botID         string
-	signalSecret  string
-	awsAccountID  string
-	noErrorReport bool
-	tpl           *template.Template
+	ce                *costexplorer.Client
+	org               *organizations.Client
+	client            *slack.Client
+	logger            *slog.Logger
+	router            *mux.Router
+	channel           string
+	botUserID         string
+	botID             string
+	signalSecret      string
+	awsAccountID      string
+	noErrorReport     bool
+	tpl               *template.Template
+	dynamodbTableName string
 }
 
 var _ http.Handler = (*Handler)(nil)
@@ -150,18 +151,19 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	}
 	router := mux.NewRouter()
 	h := &Handler{
-		ce:            costexplorer.NewFromConfig(*params.awsCfg),
-		org:           organizations.NewFromConfig(*params.awsCfg),
-		logger:        params.logger.With("component", "handler"),
-		router:        router,
-		client:        client,
-		botID:         botID,
-		channel:       params.slackChannel,
-		botUserID:     botUserID,
-		signalSecret:  params.slackSignalSecret,
-		awsAccountID:  awsAccountID,
-		noErrorReport: params.noErrorReport,
-		tpl:           tpl,
+		ce:                costexplorer.NewFromConfig(*params.awsCfg),
+		org:               organizations.NewFromConfig(*params.awsCfg),
+		logger:            params.logger.With("component", "handler"),
+		router:            router,
+		client:            client,
+		botID:             botID,
+		channel:           params.slackChannel,
+		botUserID:         botUserID,
+		signalSecret:      params.slackSignalSecret,
+		awsAccountID:      awsAccountID,
+		noErrorReport:     params.noErrorReport,
+		dynamodbTableName: params.dynamodbTableName,
+		tpl:               tpl,
 	}
 	var dummy templateData
 	if _, err := h.newDetectAnomalyMessageOptions(dummy); err != nil {
