@@ -133,6 +133,20 @@ func lastDayOfThisMonth() time.Time {
 }
 
 func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time, c RootCause) (io.WriterTo, error) {
+	graph := NewCostGraph()
+	title, unit, err := g.renderGraph(ctx, graph, startAt, endAt, c, "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render graph: %w", err)
+	}
+	slog.InfoContext(ctx, "generate graph", "title", title, "start_at", startAt, "end_at", endAt)
+	w, err := graph.WriteTo(title, fmt.Sprintf("Cost (%s)", unit))
+	if err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, startAt, endAt time.Time, c RootCause, extraLabel string, extraFilters []types.Expression) (string, string, error) {
 	costLabel := []string{}
 	andExpr := []types.Expression{
 		{
@@ -178,6 +192,7 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 		})
 		costLabel = append(costLabel, c.UsageType)
 	}
+	andExpr = append(andExpr, extraFilters...)
 	// for ValidationException: end date past the beginning of next month
 	if endAt.After(lastDayOfThisMonth()) {
 		endAt = lastDayOfThisMonth()
@@ -197,28 +212,27 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 	slog.Info("get cost and usage", "start_at", startAt, "end_at", endAt, "input", input)
 	paginator := costexplorerx.NewGetCostAndUsagePaginator(g.client, input)
 	unit := ""
-	graph := NewCostGraph()
 	for paginator.HasMorePages() {
 		out, err := paginator.NextPage(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get cost and usage: %w", err)
+			return "", "", fmt.Errorf("failed to get cost and usage: %w", err)
 		}
 		for _, data := range out.ResultsByTime {
 			date, err := time.Parse("2006-01-02", *data.TimePeriod.Start)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse point date: %w", err)
+				return "", "", fmt.Errorf("failed to parse point date: %w", err)
 			}
 			if len(data.Groups) == 0 {
 				netUnblendedCost, ok := data.Total["NetUnblendedCost"]
 				if !ok {
-					return nil, errors.New("NetUnblendedCost not found")
+					return "", "", errors.New("NetUnblendedCost not found")
 				}
 				cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
 				if err != nil {
-					return nil, err
+					return "", "", err
 				}
 				unit = *netUnblendedCost.Unit
-				graph.AddDataPoint(date, cost, "NetUnblendedCost")
+				graph.AddDataPoint(date, cost, "NetUnblendedCost"+extraLabel)
 			} else {
 				for _, group := range data.Groups {
 					var groupLabels []string
@@ -242,23 +256,18 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 					}
 					netUnblendedCost, ok := group.Metrics["NetUnblendedCost"]
 					if !ok {
-						return nil, errors.New("NetUnblendedCost not found")
+						return "", "", errors.New("NetUnblendedCost not found")
 					}
 					cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
 					if err != nil {
-						return nil, err
+						return "", "", err
 					}
 					unit = *netUnblendedCost.Unit
-					graph.AddDataPoint(date, cost, l)
+					graph.AddDataPoint(date, cost, l+extraLabel)
 				}
 			}
 		}
 	}
 	title := strings.Join(costLabel, ",")
-	slog.InfoContext(ctx, "generate graph", "title", title, "start_at", startAt, "end_at", endAt)
-	w, err := graph.WriteTo(title, fmt.Sprintf("Cost (%s)", unit))
-	if err != nil {
-		return nil, err
-	}
-	return w, nil
+	return title, unit, nil
 }
