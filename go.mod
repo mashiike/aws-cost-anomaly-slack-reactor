@@ -1,6 +1,7 @@
 module github.com/mashiike/aws-cost-anomaly-slack-reactor
 
 go 1.21.0
+toolchain go1.22.2
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
@@ -14,7 +15,7 @@ require (
 	github.com/fatih/color v1.17.0
 	github.com/fujiwara/ridge v0.9.0
 	github.com/gorilla/mux v1.8.1
-	github.com/handlename/ssmwrap v1.2.1
+	github.com/handlename/ssmwrap v1.2.2
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
 	github.com/mashiike/canyon v0.7.1
 	github.com/mashiike/slogutils v0.4.0
