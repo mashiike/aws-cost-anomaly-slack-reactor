@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.6.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.5.0...v0.6.0) - 2024-05-28
+- Handle Multiple SNS Notifications for the Same AnomalyID in AWS Cost Anomaly Detector by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/50
+- Bump github.com/handlename/ssmwrap from 1.2.1 to 2.1.0 by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/52
+
 ## [v0.5.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.4.0...v0.5.0) - 2024-05-27
 - Bump the aws-sdk-go-v2 group with 4 updates by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/39
 - Enhance Anomaly Detection by Visualizing Cost Trends Excluding Savings Plan for Specific Services by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/46
