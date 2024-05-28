@@ -96,9 +96,12 @@ func main() {
 	if sqsQueueName == "" {
 		ridge.RunWithContext(ctx, address, prefix, h)
 	} else {
-		canyon.RunWithContext(ctx, sqsQueueName, h,
+		err := canyon.RunWithContext(ctx, sqsQueueName, h,
 			canyon.WithServerAddress(address, prefix),
 			canyon.WithCanyonEnv("CANYON_"),
 		)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
