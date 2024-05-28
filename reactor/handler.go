@@ -323,16 +323,19 @@ func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMe
 	if err != nil {
 		return fmt.Errorf("failed to marshal item: %w", err)
 	}
-	expr, err := expression.NewBuilder().WithCondition(
-		expression.AttributeNotExists(expression.Name("AnomalyID")).And(expression.AttributeNotExists(expression.Name("SlackTeamID"))),
-	).Build()
+	expr, err := expression.NewBuilder().
+		WithCondition(
+			expression.AttributeNotExists(expression.Name("AnomalyID")).And(expression.AttributeNotExists(expression.Name("SlackTeamID"))),
+		).
+		Build()
 	if err != nil {
 		return fmt.Errorf("failed to build expression: %w", err)
 	}
 	_, err = h.ddb.PutItem(ctx, &dynamodb.PutItemInput{
-		TableName:           aws.String(h.dynamodbTableName),
-		Item:                item,
-		ConditionExpression: expr.Condition(),
+		TableName:                aws.String(h.dynamodbTableName),
+		Item:                     item,
+		ConditionExpression:      expr.Condition(),
+		ExpressionAttributeNames: expr.Names(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to put item: %w", err)
@@ -359,6 +362,9 @@ func (h *Handler) GetAnomalySlackMessage(ctx context.Context, anomalyID string) 
 	var m AnomalySlackMessage
 	if err := attributevalue.UnmarshalMap(output.Item, &m); err != nil {
 		return nil, false, fmt.Errorf("failed to unmarshal item: %w", err)
+	}
+	if m.AnomalyID == "" || m.SlackTeamID == "" {
+		return nil, false, nil
 	}
 	return &m, true, nil
 }
