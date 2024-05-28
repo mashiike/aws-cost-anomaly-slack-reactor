@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -11,7 +12,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/fujiwara/ridge"
-	"github.com/handlename/ssmwrap"
+	"github.com/handlename/ssmwrap/v2"
 	"github.com/ken39arg/go-flagx"
 	"github.com/mashiike/aws-cost-anomaly-slack-reactor/reactor"
 	"github.com/mashiike/canyon"
@@ -19,24 +20,37 @@ import (
 )
 
 func main() {
-	if ssmWrapPaths := os.Getenv("SSMWRAP_PATHS"); ssmWrapPaths != "" {
-		err := ssmwrap.Export(ssmwrap.ExportOptions{
-			Recursive: true,
-			Paths:     strings.Split(ssmWrapPaths, ","),
-			Retries:   3,
-		})
-		if err != nil {
-			log.Fatalf("failed to export SSM parameters: %v", err)
+	if err := _main(); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+}
+func _main() error {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	var ssmwrapExportRules []ssmwrap.ExportRule
+	if ssmwrapPaths := os.Getenv("SSMWRAP_PATHS"); ssmwrapPaths != "" {
+		for _, path := range strings.Split(ssmwrapPaths, ",") {
+			path = strings.TrimSuffix(path, "/")
+			ssmwrapExportRules = append(ssmwrapExportRules, ssmwrap.ExportRule{
+				Path: path + "/**/*",
+			})
 		}
 	}
-	if ssmWarpNames := os.Getenv("SSMWRAP_NAMES"); ssmWarpNames != "" {
-		err := ssmwrap.Export(ssmwrap.ExportOptions{
-			Recursive: true,
-			Names:     strings.Split(ssmWarpNames, ","),
-			Retries:   3,
+	if ssmwarpNames := os.Getenv("SSMWRAP_NAMES"); ssmwarpNames != "" {
+		for _, name := range strings.Split(ssmwarpNames, ",") {
+			ssmwrapExportRules = append(ssmwrapExportRules, ssmwrap.ExportRule{
+				Path: name,
+			})
+		}
+	}
+	if len(ssmwrapExportRules) > 0 {
+		err := ssmwrap.Export(ctx, ssmwrapExportRules, ssmwrap.ExportOptions{
+			Retries: 3,
 		})
 		if err != nil {
-			log.Fatalf("failed to export SSM parameters: %v", err)
+			return fmt.Errorf("failed to export SSM parameters: %w", err)
 		}
 	}
 	var (
@@ -83,8 +97,7 @@ func main() {
 	)
 	slog.SetDefault(slog.New(middleware))
 	slog.Info("setup logger", "level", minLevel)
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
+
 	var opts []reactor.Option
 	if dynamodbTableName != "" {
 		opts = append(opts, reactor.WithDynamoDBTableName(dynamodbTableName))
@@ -101,7 +114,8 @@ func main() {
 			canyon.WithCanyonEnv("CANYON_"),
 		)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("failed to run canyon: %w", err)
 		}
 	}
+	return nil
 }
