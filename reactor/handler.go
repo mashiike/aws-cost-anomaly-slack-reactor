@@ -21,7 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -323,19 +322,9 @@ func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMe
 	if err != nil {
 		return fmt.Errorf("failed to marshal item: %w", err)
 	}
-	expr, err := expression.NewBuilder().
-		WithCondition(
-			expression.AttributeNotExists(expression.Name("AnomalyID")).And(expression.AttributeNotExists(expression.Name("SlackTeamID"))),
-		).
-		Build()
-	if err != nil {
-		return fmt.Errorf("failed to build expression: %w", err)
-	}
 	_, err = h.ddb.PutItem(ctx, &dynamodb.PutItemInput{
-		TableName:                aws.String(h.dynamodbTableName),
-		Item:                     item,
-		ConditionExpression:      expr.Condition(),
-		ExpressionAttributeNames: expr.Names(),
+		TableName: aws.String(h.dynamodbTableName),
+		Item:      item,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to put item: %w", err)
@@ -753,14 +742,14 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 		if err != nil {
 			return fmt.Errorf("failed to post message: %w", err)
 		}
-		if h.EnableDynamoDB() {
-			if err := h.SaveAnomalySlackMessage(ctx, &AnomalySlackMessage{
-				AnomalyID:             a.AnomalyID,
-				SlackMessageTimestamp: ts,
-				TotalImpact:           a.Impact.TotalImpact,
-			}); err != nil {
-				h.logger.WarnContext(ctx, "failed to save anomaly slack message", "error", err, "anomaly_id", a.AnomalyID)
-			}
+	}
+	if h.EnableDynamoDB() {
+		if err := h.SaveAnomalySlackMessage(ctx, &AnomalySlackMessage{
+			AnomalyID:             a.AnomalyID,
+			SlackMessageTimestamp: ts,
+			TotalImpact:           a.Impact.TotalImpact,
+		}); err != nil {
+			h.logger.WarnContext(ctx, "failed to save anomaly slack message", "error", err, "anomaly_id", a.AnomalyID)
 		}
 	}
 	h.logger.Info("post anomaly detected message", "anomaly_id", a.AnomalyID, "thread_ts", ts)
