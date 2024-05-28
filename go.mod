@@ -1,6 +1,8 @@
 module github.com/mashiike/aws-cost-anomaly-slack-reactor
 
-go 1.21.0
+go 1.22
+
+toolchain go1.22.3
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
@@ -17,7 +19,7 @@ require (
 	github.com/fatih/color v1.17.0
 	github.com/fujiwara/ridge v0.9.0
 	github.com/gorilla/mux v1.8.1
-	github.com/handlename/ssmwrap v1.2.1
+	github.com/handlename/ssmwrap/v2 v2.1.0
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
 	github.com/mashiike/canyon v0.7.1
 	github.com/mashiike/slogutils v0.4.0
@@ -30,7 +32,6 @@ require (
 	git.sr.ht/~sbinet/gg v0.5.0 // indirect
 	github.com/Songmu/flextime v0.1.0 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
-	github.com/aws/aws-sdk-go v1.51.9 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.15 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.3 // indirect
@@ -50,6 +51,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.31.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.49.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.20.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.2 // indirect
 	github.com/campoy/embedmd v1.0.0 // indirect
@@ -61,12 +63,15 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/lmittmann/tint v1.0.4 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pires/go-proxyproto v0.7.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/samber/lo v1.39.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
+	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 // indirect
 	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
