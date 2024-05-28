@@ -22,6 +22,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	ddbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -34,6 +36,7 @@ import (
 type Handler struct {
 	ce                *costexplorer.Client
 	org               *organizations.Client
+	ddb               *dynamodb.Client
 	client            *slack.Client
 	logger            *slog.Logger
 	router            *mux.Router
@@ -153,6 +156,7 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	h := &Handler{
 		ce:                costexplorer.NewFromConfig(*params.awsCfg),
 		org:               organizations.NewFromConfig(*params.awsCfg),
+		ddb:               dynamodb.NewFromConfig(*params.awsCfg),
 		logger:            params.logger.With("component", "handler"),
 		router:            router,
 		client:            client,
@@ -164,6 +168,12 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 		noErrorReport:     params.noErrorReport,
 		dynamodbTableName: params.dynamodbTableName,
 		tpl:               tpl,
+	}
+	if h.EnableDynamoDB() {
+		params.logger.Info("dynamodb enabled", "table_name", h.dynamodbTableName)
+		if err := h.PrepareDynamoDBTable(ctx); err != nil {
+			return nil, fmt.Errorf("failed to prepare dynamodb table: %w", err)
+		}
 	}
 	var dummy templateData
 	if _, err := h.newDetectAnomalyMessageOptions(dummy); err != nil {
@@ -192,6 +202,108 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 		w.WriteHeader(http.StatusNotFound)
 	}).Methods(http.MethodPost)
 	return h, nil
+}
+
+func (h *Handler) EnableDynamoDB() bool {
+	return h.dynamodbTableName != ""
+}
+
+func (h *Handler) PrepareDynamoDBTable(ctx context.Context) error {
+	h.logger.DebugContext(ctx, "prepare dynamodb table", "table_name", h.dynamodbTableName)
+	// check table exists
+	describeOutput, err := h.ddb.DescribeTable(ctx, &dynamodb.DescribeTableInput{
+		TableName: aws.String(h.dynamodbTableName),
+	})
+	if err != nil {
+		var notFound *ddbtypes.ResourceNotFoundException
+		if errors.As(err, &notFound) {
+			h.logger.InfoContext(ctx, "table not found, create table", "table_name", h.dynamodbTableName)
+			createOutput, err := h.ddb.CreateTable(ctx, &dynamodb.CreateTableInput{
+				TableName: aws.String(h.dynamodbTableName),
+				KeySchema: []ddbtypes.KeySchemaElement{
+					{
+						AttributeName: aws.String("AnomalyID"),
+						KeyType:       ddbtypes.KeyTypeHash,
+					},
+					{
+						AttributeName: aws.String("SlackTeamID"),
+						KeyType:       ddbtypes.KeyTypeRange,
+					},
+				},
+				AttributeDefinitions: []ddbtypes.AttributeDefinition{
+					{
+						AttributeName: aws.String("AnomalyID"),
+						AttributeType: ddbtypes.ScalarAttributeTypeS,
+					},
+					{
+						AttributeName: aws.String("SlackTeamID"),
+						AttributeType: ddbtypes.ScalarAttributeTypeS,
+					},
+					{
+						AttributeName: aws.String("TTL"),
+						AttributeType: ddbtypes.ScalarAttributeTypeN,
+					},
+				},
+				BillingMode: ddbtypes.BillingModePayPerRequest,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create table: %w", err)
+			}
+			describeOutput = &dynamodb.DescribeTableOutput{
+				Table: createOutput.TableDescription,
+			}
+		} else {
+			return fmt.Errorf("failed to describe table: %w", err)
+		}
+	}
+	waiter := func() (bool, error) {
+		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+		// wait table ready
+		for describeOutput.Table.TableStatus != ddbtypes.TableStatusActive {
+			select {
+			case <-timeoutCtx.Done():
+				return false, fmt.Errorf("timeout")
+			default:
+			}
+			h.logger.DebugContext(timeoutCtx, "wait table ready", "table_status", describeOutput.Table.TableStatus)
+			time.Sleep(100 * time.Millisecond)
+			describeOutput, err = h.ddb.DescribeTable(timeoutCtx, &dynamodb.DescribeTableInput{
+				TableName: aws.String(h.dynamodbTableName),
+			})
+			if err != nil {
+				return false, fmt.Errorf("failed to describe table: %w", err)
+			}
+		}
+		return true, nil
+	}
+	if ok, err := waiter(); err != nil {
+		return fmt.Errorf("failed to wait table ready: %w", err)
+	} else if !ok {
+		return fmt.Errorf("table not ready")
+	}
+	h.logger.InfoContext(ctx, "table ready", "table_name", h.dynamodbTableName)
+	// check ttl enabled
+	desc, err := h.ddb.DescribeTimeToLive(ctx, &dynamodb.DescribeTimeToLiveInput{
+		TableName: aws.String(h.dynamodbTableName),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to describe ttl: %w", err)
+	}
+	if desc.TimeToLiveDescription.TimeToLiveStatus != ddbtypes.TimeToLiveStatusEnabled {
+		h.logger.InfoContext(ctx, "enable ttl", "table_name", h.dynamodbTableName)
+		_, err := h.ddb.UpdateTimeToLive(ctx, &dynamodb.UpdateTimeToLiveInput{
+			TableName: aws.String(h.dynamodbTableName),
+			TimeToLiveSpecification: &ddbtypes.TimeToLiveSpecification{
+				AttributeName: aws.String("TTL"),
+				Enabled:       aws.Bool(true),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to enable ttl: %w", err)
+		}
+	}
+	return nil
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
