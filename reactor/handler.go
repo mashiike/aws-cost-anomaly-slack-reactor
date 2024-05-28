@@ -312,12 +312,12 @@ type AnomalySlackMessage struct {
 	SlackTeamID           string
 	SlackMessageTimestamp string
 	TotalImpact           float64
-	TTL                   time.Time
+	TTL                   int64
 }
 
 func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMessage) error {
 	m.SlackTeamID = h.slackTeamID
-	m.TTL = time.Now().AddDate(0, 1, 0)
+	m.TTL = time.Now().AddDate(0, 1, 0).Unix()
 	h.logger.DebugContext(ctx, "save anomaly slack message", "anomaly_id", m.AnomalyID, "slack_team_id", m.SlackTeamID)
 	item, err := attributevalue.MarshalMap(m)
 	if err != nil {
