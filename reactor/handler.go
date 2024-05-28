@@ -20,8 +20,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	ddbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -32,18 +36,21 @@ import (
 )
 
 type Handler struct {
-	ce            *costexplorer.Client
-	org           *organizations.Client
-	client        *slack.Client
-	logger        *slog.Logger
-	router        *mux.Router
-	channel       string
-	botUserID     string
-	botID         string
-	signalSecret  string
-	awsAccountID  string
-	noErrorReport bool
-	tpl           *template.Template
+	ce                *costexplorer.Client
+	org               *organizations.Client
+	ddb               *dynamodb.Client
+	client            *slack.Client
+	logger            *slog.Logger
+	router            *mux.Router
+	channel           string
+	botUserID         string
+	botID             string
+	slackTeamID       string
+	signalSecret      string
+	awsAccountID      string
+	noErrorReport     bool
+	tpl               *template.Template
+	dynamodbTableName string
 }
 
 var _ http.Handler = (*Handler)(nil)
@@ -128,7 +135,7 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 		params.logger.Debug("failed to get aws account id", "error", err)
 	}
 
-	var botID, botUserID string
+	var botID, botUserID, teamID string
 	client := slack.New(params.slackBotToken)
 	if params.slackBotToken != "" {
 		me, err := client.AuthTest()
@@ -145,23 +152,33 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 		)
 		botID = me.BotID
 		botUserID = me.UserID
+		teamID = me.TeamID
 	} else {
 		params.logger.Warn("slack bot token is not set, running anonymous mode")
 	}
 	router := mux.NewRouter()
 	h := &Handler{
-		ce:            costexplorer.NewFromConfig(*params.awsCfg),
-		org:           organizations.NewFromConfig(*params.awsCfg),
-		logger:        params.logger.With("component", "handler"),
-		router:        router,
-		client:        client,
-		botID:         botID,
-		channel:       params.slackChannel,
-		botUserID:     botUserID,
-		signalSecret:  params.slackSignalSecret,
-		awsAccountID:  awsAccountID,
-		noErrorReport: params.noErrorReport,
-		tpl:           tpl,
+		ce:                costexplorer.NewFromConfig(*params.awsCfg),
+		org:               organizations.NewFromConfig(*params.awsCfg),
+		ddb:               dynamodb.NewFromConfig(*params.awsCfg),
+		logger:            params.logger.With("component", "handler"),
+		router:            router,
+		client:            client,
+		botID:             botID,
+		channel:           params.slackChannel,
+		botUserID:         botUserID,
+		slackTeamID:       teamID,
+		signalSecret:      params.slackSignalSecret,
+		awsAccountID:      awsAccountID,
+		noErrorReport:     params.noErrorReport,
+		dynamodbTableName: params.dynamodbTableName,
+		tpl:               tpl,
+	}
+	if h.EnableDynamoDB() {
+		params.logger.Info("dynamodb enabled", "table_name", h.dynamodbTableName)
+		if err := h.PrepareDynamoDBTable(ctx); err != nil {
+			return nil, fmt.Errorf("failed to prepare dynamodb table: %w", err)
+		}
 	}
 	var dummy templateData
 	if _, err := h.newDetectAnomalyMessageOptions(dummy); err != nil {
@@ -190,6 +207,166 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 		w.WriteHeader(http.StatusNotFound)
 	}).Methods(http.MethodPost)
 	return h, nil
+}
+
+func (h *Handler) EnableDynamoDB() bool {
+	return h.dynamodbTableName != ""
+}
+
+func (h *Handler) PrepareDynamoDBTable(ctx context.Context) error {
+	h.logger.DebugContext(ctx, "prepare dynamodb table", "table_name", h.dynamodbTableName)
+	// check table exists
+	describeOutput, err := h.ddb.DescribeTable(ctx, &dynamodb.DescribeTableInput{
+		TableName: aws.String(h.dynamodbTableName),
+	})
+	if err != nil {
+		var notFound *ddbtypes.ResourceNotFoundException
+		if errors.As(err, &notFound) {
+			h.logger.InfoContext(ctx, "table not found, create table", "table_name", h.dynamodbTableName)
+			createOutput, err := h.ddb.CreateTable(ctx, &dynamodb.CreateTableInput{
+				TableName: aws.String(h.dynamodbTableName),
+				KeySchema: []ddbtypes.KeySchemaElement{
+					{
+						AttributeName: aws.String("AnomalyID"),
+						KeyType:       ddbtypes.KeyTypeHash,
+					},
+					{
+						AttributeName: aws.String("SlackTeamID"),
+						KeyType:       ddbtypes.KeyTypeRange,
+					},
+				},
+				AttributeDefinitions: []ddbtypes.AttributeDefinition{
+					{
+						AttributeName: aws.String("AnomalyID"),
+						AttributeType: ddbtypes.ScalarAttributeTypeS,
+					},
+					{
+						AttributeName: aws.String("SlackTeamID"),
+						AttributeType: ddbtypes.ScalarAttributeTypeS,
+					},
+				},
+				BillingMode: ddbtypes.BillingModePayPerRequest,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create table: %w", err)
+			}
+			describeOutput = &dynamodb.DescribeTableOutput{
+				Table: createOutput.TableDescription,
+			}
+		} else {
+			return fmt.Errorf("failed to describe table: %w", err)
+		}
+	}
+	waiter := func() (bool, error) {
+		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+		// wait table ready
+		for describeOutput.Table.TableStatus != ddbtypes.TableStatusActive {
+			select {
+			case <-timeoutCtx.Done():
+				return false, fmt.Errorf("timeout")
+			default:
+			}
+			h.logger.DebugContext(timeoutCtx, "wait table ready", "table_status", describeOutput.Table.TableStatus)
+			time.Sleep(100 * time.Millisecond)
+			describeOutput, err = h.ddb.DescribeTable(timeoutCtx, &dynamodb.DescribeTableInput{
+				TableName: aws.String(h.dynamodbTableName),
+			})
+			if err != nil {
+				return false, fmt.Errorf("failed to describe table: %w", err)
+			}
+		}
+		return true, nil
+	}
+	if ok, err := waiter(); err != nil {
+		return fmt.Errorf("failed to wait table ready: %w", err)
+	} else if !ok {
+		return fmt.Errorf("table not ready")
+	}
+	h.logger.InfoContext(ctx, "table ready", "table_name", h.dynamodbTableName)
+	// check ttl enabled
+	desc, err := h.ddb.DescribeTimeToLive(ctx, &dynamodb.DescribeTimeToLiveInput{
+		TableName: aws.String(h.dynamodbTableName),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to describe ttl: %w", err)
+	}
+	if desc.TimeToLiveDescription.TimeToLiveStatus != ddbtypes.TimeToLiveStatusEnabled {
+		h.logger.InfoContext(ctx, "enable ttl", "table_name", h.dynamodbTableName)
+		_, err := h.ddb.UpdateTimeToLive(ctx, &dynamodb.UpdateTimeToLiveInput{
+			TableName: aws.String(h.dynamodbTableName),
+			TimeToLiveSpecification: &ddbtypes.TimeToLiveSpecification{
+				AttributeName: aws.String("TTL"),
+				Enabled:       aws.Bool(true),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to enable ttl: %w", err)
+		}
+	}
+	return nil
+}
+
+type AnomalySlackMessage struct {
+	AnomalyID             string
+	SlackTeamID           string
+	SlackMessageTimestamp string
+	TotalImpact           float64
+	TTL                   time.Time
+}
+
+func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMessage) error {
+	m.SlackTeamID = h.slackTeamID
+	m.TTL = time.Now().AddDate(0, 1, 0)
+	h.logger.DebugContext(ctx, "save anomaly slack message", "anomaly_id", m.AnomalyID, "slack_team_id", m.SlackTeamID)
+	item, err := attributevalue.MarshalMap(m)
+	if err != nil {
+		return fmt.Errorf("failed to marshal item: %w", err)
+	}
+	expr, err := expression.NewBuilder().
+		WithCondition(
+			expression.AttributeNotExists(expression.Name("AnomalyID")).And(expression.AttributeNotExists(expression.Name("SlackTeamID"))),
+		).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to build expression: %w", err)
+	}
+	_, err = h.ddb.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName:                aws.String(h.dynamodbTableName),
+		Item:                     item,
+		ConditionExpression:      expr.Condition(),
+		ExpressionAttributeNames: expr.Names(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to put item: %w", err)
+	}
+	return nil
+}
+
+func (h *Handler) GetAnomalySlackMessage(ctx context.Context, anomalyID string) (*AnomalySlackMessage, bool, error) {
+	h.logger.DebugContext(ctx, "get anomaly slack message", "anomaly_id", anomalyID, "slack_team_id", h.slackTeamID)
+	output, err := h.ddb.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String(h.dynamodbTableName),
+		Key: map[string]ddbtypes.AttributeValue{
+			"AnomalyID":   &ddbtypes.AttributeValueMemberS{Value: anomalyID},
+			"SlackTeamID": &ddbtypes.AttributeValueMemberS{Value: h.slackTeamID},
+		},
+	})
+	if err != nil {
+		var notFound *ddbtypes.ResourceNotFoundException
+		if errors.As(err, &notFound) {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("failed to get item: %w", err)
+	}
+	var m AnomalySlackMessage
+	if err := attributevalue.UnmarshalMap(output.Item, &m); err != nil {
+		return nil, false, fmt.Errorf("failed to unmarshal item: %w", err)
+	}
+	if m.AnomalyID == "" || m.SlackTeamID == "" {
+		return nil, false, nil
+	}
+	return &m, true, nil
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -546,10 +723,45 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 	if err != nil {
 		return fmt.Errorf("failed to generate graphs: %w", err)
 	}
-
-	_, ts, err := h.client.PostMessageContext(ctx, h.channel, opts...)
-	if err != nil {
-		return fmt.Errorf("failed to post message: %w", err)
+	var posted bool
+	var ts string
+	if h.EnableDynamoDB() {
+		msg, ok, err := h.GetAnomalySlackMessage(ctx, a.AnomalyID)
+		if err != nil {
+			h.logger.WarnContext(ctx, "failed to get anomaly slack message", "error", err)
+		}
+		if ok {
+			posted = true
+			ts = msg.SlackMessageTimestamp
+			updateText := fmt.Sprintf("Update Total Impact `%f` to `%f`", msg.TotalImpact, a.Impact.TotalImpact)
+			_, _, err = h.client.PostMessageContext(
+				ctx, h.channel,
+				slack.MsgOptionTS(ts),
+				slack.MsgOptionText(updateText, false),
+			)
+			if err != nil {
+				return fmt.Errorf("failed to post message: %w", err)
+			}
+			_, _, _, err = h.client.UpdateMessageContext(ctx, h.channel, ts, opts...)
+			if err != nil {
+				return fmt.Errorf("failed to update message: %w", err)
+			}
+		}
+	}
+	if !posted {
+		_, ts, err = h.client.PostMessageContext(ctx, h.channel, opts...)
+		if err != nil {
+			return fmt.Errorf("failed to post message: %w", err)
+		}
+		if h.EnableDynamoDB() {
+			if err := h.SaveAnomalySlackMessage(ctx, &AnomalySlackMessage{
+				AnomalyID:             a.AnomalyID,
+				SlackMessageTimestamp: ts,
+				TotalImpact:           a.Impact.TotalImpact,
+			}); err != nil {
+				h.logger.WarnContext(ctx, "failed to save anomaly slack message", "error", err, "anomaly_id", a.AnomalyID)
+			}
+		}
 	}
 	h.logger.Info("post anomaly detected message", "anomaly_id", a.AnomalyID, "thread_ts", ts)
 	for i, g := range graphs {

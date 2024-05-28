@@ -13,6 +13,7 @@ type optionParams struct {
 	slackChannel      string
 	slackSignalSecret string
 	templateStr       string
+	dynamodbTableName string
 	noErrorReport     bool
 }
 
@@ -57,5 +58,11 @@ func WithTemplate(template string) Option {
 func WithNoErrorReport() Option {
 	return func(args *optionParams) {
 		args.noErrorReport = true
+	}
+}
+
+func WithDynamoDBTableName(tableName string) Option {
+	return func(args *optionParams) {
+		args.dynamodbTableName = tableName
 	}
 }

@@ -6,6 +6,7 @@
           "SQS_QUEUE_NAME": "aws-cost-anomaly-slack-reactor",
           "LOG_LEVEL": "debug",
           "SSMWRAP_PATHS": "/cost-anomaly-slack-reactor/",
+          "DYNAMODB_TABLE_NAME": "aws-cost-anomaly-slack-reactor",
           "TZ": "Asia/Tokyo"
       }
   },
