@@ -21,7 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -312,30 +311,20 @@ type AnomalySlackMessage struct {
 	SlackTeamID           string
 	SlackMessageTimestamp string
 	TotalImpact           float64
-	TTL                   time.Time
+	TTL                   int64
 }
 
 func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMessage) error {
 	m.SlackTeamID = h.slackTeamID
-	m.TTL = time.Now().AddDate(0, 1, 0)
+	m.TTL = time.Now().AddDate(0, 1, 0).Unix()
 	h.logger.DebugContext(ctx, "save anomaly slack message", "anomaly_id", m.AnomalyID, "slack_team_id", m.SlackTeamID)
 	item, err := attributevalue.MarshalMap(m)
 	if err != nil {
 		return fmt.Errorf("failed to marshal item: %w", err)
 	}
-	expr, err := expression.NewBuilder().
-		WithCondition(
-			expression.AttributeNotExists(expression.Name("AnomalyID")).And(expression.AttributeNotExists(expression.Name("SlackTeamID"))),
-		).
-		Build()
-	if err != nil {
-		return fmt.Errorf("failed to build expression: %w", err)
-	}
 	_, err = h.ddb.PutItem(ctx, &dynamodb.PutItemInput{
-		TableName:                aws.String(h.dynamodbTableName),
-		Item:                     item,
-		ConditionExpression:      expr.Condition(),
-		ExpressionAttributeNames: expr.Names(),
+		TableName: aws.String(h.dynamodbTableName),
+		Item:      item,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to put item: %w", err)
@@ -753,14 +742,14 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 		if err != nil {
 			return fmt.Errorf("failed to post message: %w", err)
 		}
-		if h.EnableDynamoDB() {
-			if err := h.SaveAnomalySlackMessage(ctx, &AnomalySlackMessage{
-				AnomalyID:             a.AnomalyID,
-				SlackMessageTimestamp: ts,
-				TotalImpact:           a.Impact.TotalImpact,
-			}); err != nil {
-				h.logger.WarnContext(ctx, "failed to save anomaly slack message", "error", err, "anomaly_id", a.AnomalyID)
-			}
+	}
+	if h.EnableDynamoDB() {
+		if err := h.SaveAnomalySlackMessage(ctx, &AnomalySlackMessage{
+			AnomalyID:             a.AnomalyID,
+			SlackMessageTimestamp: ts,
+			TotalImpact:           a.Impact.TotalImpact,
+		}); err != nil {
+			h.logger.WarnContext(ctx, "failed to save anomaly slack message", "error", err, "anomaly_id", a.AnomalyID)
 		}
 	}
 	h.logger.Info("post anomaly detected message", "anomaly_id", a.AnomalyID, "thread_ts", ts)
