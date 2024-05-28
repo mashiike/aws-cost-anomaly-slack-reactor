@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.1](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.6.0...v0.6.1) - 2024-05-28
+- ddb table ttl is eporch , not string by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/53
+
 ## [v0.6.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.5.0...v0.6.0) - 2024-05-28
 - Handle Multiple SNS Notifications for the Same AnomalyID in AWS Cost Anomaly Detector by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/50
 - Bump github.com/handlename/ssmwrap from 1.2.1 to 2.1.0 by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/52
