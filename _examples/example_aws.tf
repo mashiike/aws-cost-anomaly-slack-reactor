@@ -72,6 +72,17 @@ data "aws_iam_policy_document" "reactor" {
     ]
     resources = ["*"]
   }
+  statement {
+    actions = [
+      "dynamodb:PutItem",
+      "dynamodb:GetItem",
+      "dynamodb:CreateTable",
+      "dynamodb:DescribeTable",
+      "dynamodb:DescribeTimeToLive",
+      "dynamodb:UpdateTimeToLive",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_sqs_queue" "reactor" {
