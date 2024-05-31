@@ -240,51 +240,41 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 		Metrics: []string{"NET_UNBLENDED_COST"},
 	}
 	slog.Info("get cost and usage", "start_at", startAt, "end_at", endAt, "input", input)
-	paginator := costexplorerx.NewGetCostAndUsagePaginator(g.client, input)
-	unit := ""
-	for paginator.HasMorePages() {
-		out, err := paginator.NextPage(ctx)
-		if err != nil {
-			return "", "", fmt.Errorf("failed to get cost and usage: %w", err)
+	// group by month, start=2024-01-29, end=2024-02-04 => [2024-01-29, 2024-01-31], [2024-02-01, 2024-02-04]
+	var timePeriods []*types.DateInterval
+	current := startAt
+	next := current.AddDate(0, 0, 1)
+	for next.Before(endAt) {
+		// if month is different, append timePeriod
+		if current.Year() != next.Year() || current.Month() != next.Month() {
+			timePeriods = append(timePeriods, &types.DateInterval{
+				Start: aws.String(current.Format("2006-01-02")),
+				End:   aws.String(next.AddDate(0, 0, -1).Format("2006-01-02")),
+			})
+			current = next
 		}
-		for _, data := range out.ResultsByTime {
-			date, err := time.Parse("2006-01-02", *data.TimePeriod.Start)
+		next = next.AddDate(0, 0, 1)
+	}
+	timePeriods = append(timePeriods, &types.DateInterval{
+		Start: aws.String(current.Format("2006-01-02")),
+		End:   aws.String(endAt.Format("2006-01-02")),
+	})
+	unit := ""
+	for _, tp := range timePeriods {
+		input.TimePeriod = tp
+		paginator := costexplorerx.NewGetCostAndUsagePaginator(g.client, input)
+		for paginator.HasMorePages() {
+			out, err := paginator.NextPage(ctx)
 			if err != nil {
-				return "", "", fmt.Errorf("failed to parse point date: %w", err)
+				return "", "", fmt.Errorf("failed to get cost and usage: %w", err)
 			}
-			if len(data.Groups) == 0 {
-				netUnblendedCost, ok := data.Total["NetUnblendedCost"]
-				if !ok {
-					return "", "", errors.New("NetUnblendedCost not found")
-				}
-				cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
+			for _, data := range out.ResultsByTime {
+				date, err := time.Parse("2006-01-02", *data.TimePeriod.Start)
 				if err != nil {
-					return "", "", err
+					return "", "", fmt.Errorf("failed to parse point date: %w", err)
 				}
-				unit = *netUnblendedCost.Unit
-				graph.AddDataPoint(date, cost, "NetUnblendedCost"+extraLabel)
-			} else {
-				for _, group := range data.Groups {
-					var groupLabels []string
-					for keyIndex, v := range group.Keys {
-						k := *out.GroupDefinitions[keyIndex].Key
-						if k != "LINKED_ACCOUNT" {
-							groupLabels = append(groupLabels, v)
-							continue
-						}
-						desc, err := g.describeAccount(ctx, v)
-						if err != nil {
-							slog.Warn("failed to describe account", "account_id", v, "error", err)
-							groupLabels = append(groupLabels, v)
-						} else {
-							groupLabels = append(groupLabels, fmt.Sprintf("%s (%s)", *desc.Account.Name, v))
-						}
-					}
-					l := "(unknown)"
-					if len(groupLabels) > 0 {
-						l = strings.Join(groupLabels, ",")
-					}
-					netUnblendedCost, ok := group.Metrics["NetUnblendedCost"]
+				if len(data.Groups) == 0 {
+					netUnblendedCost, ok := data.Total["NetUnblendedCost"]
 					if !ok {
 						return "", "", errors.New("NetUnblendedCost not found")
 					}
@@ -293,7 +283,39 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 						return "", "", err
 					}
 					unit = *netUnblendedCost.Unit
-					graph.AddDataPoint(date, cost, l+extraLabel)
+					graph.AddDataPoint(date, cost, "NetUnblendedCost"+extraLabel)
+				} else {
+					for _, group := range data.Groups {
+						var groupLabels []string
+						for keyIndex, v := range group.Keys {
+							k := *out.GroupDefinitions[keyIndex].Key
+							if k != "LINKED_ACCOUNT" {
+								groupLabels = append(groupLabels, v)
+								continue
+							}
+							desc, err := g.describeAccount(ctx, v)
+							if err != nil {
+								slog.Warn("failed to describe account", "account_id", v, "error", err)
+								groupLabels = append(groupLabels, v)
+							} else {
+								groupLabels = append(groupLabels, fmt.Sprintf("%s (%s)", *desc.Account.Name, v))
+							}
+						}
+						l := "(unknown)"
+						if len(groupLabels) > 0 {
+							l = strings.Join(groupLabels, ",")
+						}
+						netUnblendedCost, ok := group.Metrics["NetUnblendedCost"]
+						if !ok {
+							return "", "", errors.New("NetUnblendedCost not found")
+						}
+						cost, err := strconv.ParseFloat(*netUnblendedCost.Amount, 64)
+						if err != nil {
+							return "", "", err
+						}
+						unit = *netUnblendedCost.Unit
+						graph.AddDataPoint(date, cost, l+extraLabel)
+					}
 				}
 			}
 		}
