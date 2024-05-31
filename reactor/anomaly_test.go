@@ -89,7 +89,7 @@ func TestGraphGenerator(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-05-17"),
-			End:   aws.String("2021-06-02"),
+			End:   aws.String("2021-05-31"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -177,8 +177,52 @@ func TestGraphGenerator(t *testing.T) {
 				},
 			},
 		},
-	}, nil)
-
+	}, nil).Times(1)
+	mockClient.On("GetCostAndUsage", mock.Anything, &costexplorer.GetCostAndUsageInput{
+		Granularity: types.GranularityDaily,
+		Metrics:     []string{"NET_UNBLENDED_COST"},
+		TimePeriod: &types.DateInterval{
+			Start: aws.String("2021-06-01"),
+			End:   aws.String("2021-06-02"),
+		},
+		Filter: &types.Expression{
+			And: []types.Expression{
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionRecordType,
+						Values: []string{"Usage"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionLinkedAccount,
+						Values: []string{"123456789012"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionRegion,
+						Values: []string{"ap-northeast-1"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionService,
+						Values: []string{"Amazon Relational Database Service"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionUsageType,
+						Values: []string{"AnomalousUsageType"},
+					},
+				},
+			},
+		},
+		GroupBy: []types.GroupDefinition{},
+	}).Return(&costexplorer.GetCostAndUsageOutput{
+		ResultsByTime: []types.ResultByTime{},
+	}, nil).Times(1)
 	gen := NewGraphGenerator(&mockClient, &mockOrgClient)
 	ctx := context.Background()
 	graphs, err := gen.Generate(ctx, a)
@@ -222,7 +266,7 @@ func TestGraphGeneratorForOrganization(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-05-17"),
-			End:   aws.String("2021-06-02"),
+			End:   aws.String("2021-05-31"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -457,7 +501,40 @@ func TestGraphGeneratorForOrganization(t *testing.T) {
 				Total: map[string]types.MetricValue{},
 			},
 		},
-	}, nil)
+	}, nil).Times(1)
+	mockClient.On("GetCostAndUsage", mock.Anything, &costexplorer.GetCostAndUsageInput{
+		Granularity: types.GranularityDaily,
+		Metrics:     []string{"NET_UNBLENDED_COST"},
+		TimePeriod: &types.DateInterval{
+			Start: aws.String("2021-06-01"),
+			End:   aws.String("2021-06-02"),
+		},
+		Filter: &types.Expression{
+			And: []types.Expression{
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionRecordType,
+						Values: []string{"Usage"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionService,
+						Values: []string{"Amazon Simple Notification Service"},
+					},
+				},
+			},
+		},
+		GroupBy: []types.GroupDefinition{},
+	}).Return(&costexplorer.GetCostAndUsageOutput{
+		GroupDefinitions: []types.GroupDefinition{
+			{
+				Key:  aws.String("LINKED_ACCOUNT"),
+				Type: types.GroupDefinitionTypeDimension,
+			},
+		},
+		ResultsByTime: []types.ResultByTime{},
+	}, nil).Times(1)
 
 	awsAccounts := map[string]string{
 		"123456789012": "aws-account1",
@@ -537,7 +614,7 @@ func TestGraphGeneratorForSavingsPlanTarget(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-05-17"),
-			End:   aws.String("2021-06-02"),
+			End:   aws.String("2021-05-31"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -626,13 +703,58 @@ func TestGraphGeneratorForSavingsPlanTarget(t *testing.T) {
 			},
 		},
 	}, nil).Times(1)
+	mockClient.On("GetCostAndUsage", mock.Anything, &costexplorer.GetCostAndUsageInput{
+		Granularity: types.GranularityDaily,
+		Metrics:     []string{"NET_UNBLENDED_COST"},
+		TimePeriod: &types.DateInterval{
+			Start: aws.String("2021-06-01"),
+			End:   aws.String("2021-06-02"),
+		},
+		Filter: &types.Expression{
+			And: []types.Expression{
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionRecordType,
+						Values: []string{"Usage"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionLinkedAccount,
+						Values: []string{"123456789012"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionRegion,
+						Values: []string{"ap-northeast-1"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionService,
+						Values: []string{"Amazon Elastic Compute Cloud - Compute"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionUsageType,
+						Values: []string{"AnomalousUsageType"},
+					},
+				},
+			},
+		},
+		GroupBy: []types.GroupDefinition{},
+	}).Return(&costexplorer.GetCostAndUsageOutput{
+		ResultsByTime: []types.ResultByTime{},
+	}, nil).Times(1)
 
 	mockClient.On("GetCostAndUsage", mock.Anything, &costexplorer.GetCostAndUsageInput{
 		Granularity: types.GranularityDaily,
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-05-17"),
-			End:   aws.String("2021-06-02"),
+			End:   aws.String("2021-05-31"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -728,6 +850,59 @@ func TestGraphGeneratorForSavingsPlanTarget(t *testing.T) {
 				},
 			},
 		},
+	}, nil).Times(1)
+	mockClient.On("GetCostAndUsage", mock.Anything, &costexplorer.GetCostAndUsageInput{
+		Granularity: types.GranularityDaily,
+		Metrics:     []string{"NET_UNBLENDED_COST"},
+		TimePeriod: &types.DateInterval{
+			Start: aws.String("2021-06-01"),
+			End:   aws.String("2021-06-02"),
+		},
+		Filter: &types.Expression{
+			And: []types.Expression{
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionRecordType,
+						Values: []string{"Usage"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionLinkedAccount,
+						Values: []string{"123456789012"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionRegion,
+						Values: []string{"ap-northeast-1"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionService,
+						Values: []string{"Amazon Elastic Compute Cloud - Compute"},
+					},
+				},
+				{
+					Dimensions: &types.DimensionValues{
+						Key:    types.DimensionUsageType,
+						Values: []string{"AnomalousUsageType"},
+					},
+				},
+				{
+					Not: &types.Expression{
+						Dimensions: &types.DimensionValues{
+							Key:    types.DimensionRecordType,
+							Values: []string{"SavingsPlanNegation"},
+						},
+					},
+				},
+			},
+		},
+		GroupBy: []types.GroupDefinition{},
+	}).Return(&costexplorer.GetCostAndUsageOutput{
+		ResultsByTime: []types.ResultByTime{},
 	}, nil).Times(1)
 
 	gen := NewGraphGenerator(&mockClient, &mockOrgClient)
