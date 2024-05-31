@@ -116,22 +116,6 @@ func (g *GraphGenerator) Generate(ctx context.Context, anomaly Anomaly) ([]*Grap
 	return graphs, nil
 }
 
-func firstDayOfNextMonth() time.Time {
-	now := time.Now()
-	nextMonth := now.Month() + 1
-	year := now.Year()
-
-	if nextMonth > 12 {
-		nextMonth = 1
-		year++
-	}
-	return time.Date(year, nextMonth, 1, 0, 0, 0, 0, time.Local)
-}
-
-func lastDayOfThisMonth() time.Time {
-	return firstDayOfNextMonth().Add(-time.Second)
-}
-
 func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time, c RootCause) (io.WriterTo, error) {
 	graph := NewCostGraph()
 	title, unit, err := g.renderGraph(ctx, graph, startAt, endAt, c, "", nil)
@@ -223,16 +207,8 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 		costLabel = append(costLabel, c.UsageType)
 	}
 	andExpr = append(andExpr, extraFilters...)
-	// for ValidationException: end date past the beginning of next month
-	if endAt.After(lastDayOfThisMonth()) {
-		endAt = lastDayOfThisMonth()
-	}
 	input := &costexplorer.GetCostAndUsageInput{
 		Granularity: types.GranularityDaily,
-		TimePeriod: &types.DateInterval{
-			Start: aws.String(startAt.Format("2006-01-02")),
-			End:   aws.String(endAt.Format("2006-01-02")),
-		},
 		Filter: &types.Expression{
 			And: andExpr,
 		},
