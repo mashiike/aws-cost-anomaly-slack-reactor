@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.4](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.6.3...v0.6.4) - 2024-06-01
+- fix TimePeriod, End not include. by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/59
+
 ## [v0.6.3](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.6.2...v0.6.3) - 2024-06-01
 - if linked_account not found, group by linked_account by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/57
 
