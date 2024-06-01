@@ -284,7 +284,12 @@ func TestGraphGeneratorForOrganization(t *testing.T) {
 				},
 			},
 		},
-		GroupBy: []types.GroupDefinition{},
+		GroupBy: []types.GroupDefinition{
+			{
+				Key:  aws.String("LINKED_ACCOUNT"),
+				Type: types.GroupDefinitionTypeDimension,
+			},
+		},
 	}).Return(&costexplorer.GetCostAndUsageOutput{
 		GroupDefinitions: []types.GroupDefinition{
 			{
@@ -525,7 +530,12 @@ func TestGraphGeneratorForOrganization(t *testing.T) {
 				},
 			},
 		},
-		GroupBy: []types.GroupDefinition{},
+		GroupBy: []types.GroupDefinition{
+			{
+				Key:  aws.String("LINKED_ACCOUNT"),
+				Type: types.GroupDefinitionTypeDimension,
+			},
+		},
 	}).Return(&costexplorer.GetCostAndUsageOutput{
 		GroupDefinitions: []types.GroupDefinition{
 			{
