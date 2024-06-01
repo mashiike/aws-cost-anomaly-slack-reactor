@@ -162,6 +162,7 @@ func (g *GraphGenerator) IsSavingsPlanApplied(c RootCause) bool {
 
 func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, startAt, endAt time.Time, c RootCause, extraLabel string, extraFilters []types.Expression) (string, string, error) {
 	costLabel := []string{}
+	groupBy := []types.GroupDefinition{}
 	andExpr := []types.Expression{
 		{
 			Dimensions: &types.DimensionValues{
@@ -178,6 +179,11 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 			},
 		})
 		costLabel = append(costLabel, fmt.Sprintf("%s(%s)", c.LinkedAccountName, c.LinkedAccount))
+	} else {
+		groupBy = append(groupBy, types.GroupDefinition{
+			Type: types.GroupDefinitionTypeDimension,
+			Key:  aws.String(string(types.DimensionLinkedAccount)),
+		})
 	}
 	if c.Region != "" {
 		andExpr = append(andExpr, types.Expression{
@@ -212,7 +218,7 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 		Filter: &types.Expression{
 			And: andExpr,
 		},
-		GroupBy: []types.GroupDefinition{},
+		GroupBy: groupBy,
 		Metrics: []string{"NET_UNBLENDED_COST"},
 	}
 	slog.Info("get cost and usage", "start_at", startAt, "end_at", endAt, "input", input)
