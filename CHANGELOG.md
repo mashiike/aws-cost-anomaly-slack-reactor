@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.3](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.6.2...v0.6.3) - 2024-06-01
+- if linked_account not found, group by linked_account by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/57
+
 ## [v0.6.2](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.6.1...v0.6.2) - 2024-05-31
 - Adjust API calls to avoid errors when crossing months by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/55
 
