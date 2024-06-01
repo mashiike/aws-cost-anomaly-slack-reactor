@@ -231,7 +231,7 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 		if current.Year() != next.Year() || current.Month() != next.Month() {
 			timePeriods = append(timePeriods, &types.DateInterval{
 				Start: aws.String(current.Format("2006-01-02")),
-				End:   aws.String(next.AddDate(0, 0, -1).Format("2006-01-02")),
+				End:   aws.String(next.Format("2006-01-02")),
 			})
 			current = next
 		}
@@ -239,7 +239,7 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 	}
 	timePeriods = append(timePeriods, &types.DateInterval{
 		Start: aws.String(current.Format("2006-01-02")),
-		End:   aws.String(endAt.Format("2006-01-02")),
+		End:   aws.String(endAt.AddDate(0, 0, 1).Format("2006-01-02")),
 	})
 	unit := ""
 	for _, tp := range timePeriods {

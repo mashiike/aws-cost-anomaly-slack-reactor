@@ -89,7 +89,7 @@ func TestGraphGenerator(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-05-17"),
-			End:   aws.String("2021-05-31"),
+			End:   aws.String("2021-06-01"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -183,7 +183,7 @@ func TestGraphGenerator(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-06-01"),
-			End:   aws.String("2021-06-02"),
+			End:   aws.String("2021-06-03"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -266,7 +266,7 @@ func TestGraphGeneratorForOrganization(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-05-17"),
-			End:   aws.String("2021-05-31"),
+			End:   aws.String("2021-06-01"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -512,7 +512,7 @@ func TestGraphGeneratorForOrganization(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-06-01"),
-			End:   aws.String("2021-06-02"),
+			End:   aws.String("2021-06-03"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -624,7 +624,7 @@ func TestGraphGeneratorForSavingsPlanTarget(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-05-17"),
-			End:   aws.String("2021-05-31"),
+			End:   aws.String("2021-06-01"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -718,7 +718,7 @@ func TestGraphGeneratorForSavingsPlanTarget(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-06-01"),
-			End:   aws.String("2021-06-02"),
+			End:   aws.String("2021-06-03"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -764,7 +764,7 @@ func TestGraphGeneratorForSavingsPlanTarget(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-05-17"),
-			End:   aws.String("2021-05-31"),
+			End:   aws.String("2021-06-01"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
@@ -866,7 +866,7 @@ func TestGraphGeneratorForSavingsPlanTarget(t *testing.T) {
 		Metrics:     []string{"NET_UNBLENDED_COST"},
 		TimePeriod: &types.DateInterval{
 			Start: aws.String("2021-06-01"),
-			End:   aws.String("2021-06-02"),
+			End:   aws.String("2021-06-03"),
 		},
 		Filter: &types.Expression{
 			And: []types.Expression{
