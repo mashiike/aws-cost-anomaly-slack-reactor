@@ -6,10 +6,9 @@ toolchain go1.22.3
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
-	github.com/aws/aws-sdk-go-v2 v1.27.0
+	github.com/aws/aws-sdk-go-v2 v1.27.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.13.19
-	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.19
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.38.4
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.32.5
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.7
