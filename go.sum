@@ -9,7 +9,6 @@ github.com/ajstarks/deck v0.0.0-20200831202436-30c9fc6549a9/go.mod h1:JynElWSGnm
 github.com/ajstarks/deck/generate v0.0.0-20210309230005-c3f852c02e19/go.mod h1:T13YZdzov6OU0A1+RfKZiZN9ca6VeKdBdyDV+BY97Tk=
 github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b h1:slYM766cy2nI3BwyRiyQj/Ud48djTMtMebDqepE95rw=
 github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b/go.mod h1:1KcenG0jGWcpt8ov532z81sp/kMMUG485J2InIOyADM=
-github.com/aws/aws-lambda-go v1.46.0/go.mod h1:dpMpZgvWx5vuQJfBt0zqBha60q7Dd7RfgJv23DymV8A=
 github.com/aws/aws-lambda-go v1.47.0 h1:0H8s0vumYx/YKs4sE7YM0ktwL2eWse+kfopsRI1sXVI=
 github.com/aws/aws-lambda-go v1.47.0/go.mod h1:dpMpZgvWx5vuQJfBt0zqBha60q7Dd7RfgJv23DymV8A=
 github.com/aws/aws-sdk-go-v2 v1.27.0 h1:7bZWKoXhzI+mMR/HjdMx8ZCC5+6fY0lS5tr0bbgiLlo=
@@ -22,8 +21,6 @@ github.com/aws/aws-sdk-go-v2/credentials v1.17.16 h1:7d2QxY83uYl0l58ceyiSpxg9bSb
 github.com/aws/aws-sdk-go-v2/credentials v1.17.16/go.mod h1:Ae6li/6Yc6eMzysRL2BXlPYvnrLLBg3D11/AmOjw50k=
 github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.13.19 h1:Y9GflNZ9Ty+qjyY7Oral0gcaeI5NiPNHX23vXCiXfe8=
 github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.13.19/go.mod h1:RACJwWn6am6SvBqlCM9/DKHaR+79Q6/yMx3QCjuq8nw=
-github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.19 h1:Hjjh0YZ/ZIye2lzc8BcpAao9kF5TgN+Ahq0+bFHgFYM=
-github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.19/go.mod h1:bVXiHrPXAHhmMNbIqmmEpogbB7kKLcqbIBvB/baupUA=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.3 h1:dQLK4TjtnlRGb0czOht2CevZ5l6RSyRWAnKeGd7VAFE=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.3/go.mod h1:TL79f2P6+8Q7dTsILpiVST+AL9lkF6PPGI167Ny0Cjw=
 github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.16.21 h1:1v8Ii0MRVGYB/sdhkbxrtolCA7Tp+lGh+5OJTs5vmZ8=
@@ -83,8 +80,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/color v1.17.0 h1:GlRw1BRJxkpqUCBKzKOw098ed57fEsKeNjpTe3cSjK4=
 github.com/fatih/color v1.17.0/go.mod h1:YZ7TlrGPkiz6ku9fK3TLD/pl3CpsiFyu8N92HLgmosI=
-github.com/fujiwara/ridge v0.9.0 h1:q5uQENInEYjpk49T2C73BhAMbYhfbkR+PGJ9SXN4mpk=
-github.com/fujiwara/ridge v0.9.0/go.mod h1:/xRoaA5T5rrUMNsXDNOc8OjvQ6W7LXc/9jQI0L8y6ck=
+github.com/fujiwara/ridge v0.11.2 h1:YuU6vBb4KwWmvnmo5LdP2WP2wC9Lq+vaguao+H75Igc=
+github.com/fujiwara/ridge v0.11.2/go.mod h1:FUIBF8ZHZ2BpGp14b4oMbAiESQIldmtlJ1WAwt8TUbI=
 github.com/go-fonts/dejavu v0.3.2 h1:3XlHi0JBYX+Cp8n98c6qSoHrxPa4AUKDMKdrh/0sUdk=
 github.com/go-fonts/dejavu v0.3.2/go.mod h1:m+TzKY7ZEl09/a17t1593E4VYW8L1VaBXHzFZOIjGEY=
 github.com/go-fonts/latin-modern v0.3.2 h1:M+Sq24Dp0ZRPf3TctPnG1MZxRblqyWC/cRUL9WmdaFc=
@@ -131,8 +128,6 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/pires/go-proxyproto v0.7.0 h1:IukmRewDQFWC7kfnb66CSomk2q/seBuilHBYFwyq0Hs=
 github.com/pires/go-proxyproto v0.7.0/go.mod h1:Vz/1JPY/OACxWGQNIRY2BeyDmpoaWmEP40O9LbuiFR4=
-github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
-github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/samber/lo v1.39.0 h1:4gTz1wUhNYLhFSKl6O+8peW0v2F4BCY034GRpU9WnuA=

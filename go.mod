@@ -9,7 +9,6 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.27.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.13.19
-	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.19
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.38.4
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.32.5
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.7
@@ -17,7 +16,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.10
 	github.com/aws/smithy-go v1.20.2
 	github.com/fatih/color v1.17.0
-	github.com/fujiwara/ridge v0.9.0
+	github.com/fujiwara/ridge v0.11.2
 	github.com/gorilla/mux v1.8.1
 	github.com/handlename/ssmwrap/v2 v2.1.0
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
@@ -67,7 +66,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pires/go-proxyproto v0.7.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/samber/lo v1.39.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
