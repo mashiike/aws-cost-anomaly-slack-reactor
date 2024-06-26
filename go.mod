@@ -9,7 +9,6 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.27.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.13.19
-	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.19
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.38.4
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.32.5
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.7
@@ -72,9 +71,9 @@ require (
 	github.com/samber/lo v1.39.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d // indirect
-	golang.org/x/image v0.16.0 // indirect
+	golang.org/x/image v0.18.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
