@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Songmu/flextime"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
@@ -162,6 +163,7 @@ func (g *GraphGenerator) IsSavingsPlanApplied(c RootCause) bool {
 
 func generateTimePeriods(startAt time.Time, endAt time.Time) []*types.DateInterval {
 	// group by month, start=2024-01-29, end=2024-02-04 => [2024-01-29, 2024-01-31], [2024-02-01, 2024-02-04]
+	today := flextime.Now().Truncate(time.Hour * 24)
 	timePeriods := []*types.DateInterval{}
 	current := startAt
 	next := current.AddDate(0, 0, 1)
@@ -176,10 +178,12 @@ func generateTimePeriods(startAt time.Time, endAt time.Time) []*types.DateInterv
 		}
 		next = next.AddDate(0, 0, 1)
 	}
-	timePeriods = append(timePeriods, &types.DateInterval{
-		Start: aws.String(current.Format("2006-01-02")),
-		End:   aws.String(endAt.AddDate(0, 0, 1).Format("2006-01-02")),
-	})
+	if current.Compare(today) <= 0 {
+		timePeriods = append(timePeriods, &types.DateInterval{
+			Start: aws.String(current.Format("2006-01-02")),
+			End:   aws.String(endAt.AddDate(0, 0, 1).Format("2006-01-02")),
+		})
+	}
 	return timePeriods
 }
 
@@ -246,6 +250,7 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 	}
 	slog.Info("get cost and usage", "start_at", startAt, "end_at", endAt, "input", input)
 	timePeriods := generateTimePeriods(startAt, endAt)
+	slog.Debug("generate time periods", "start_at", startAt, "end_at", endAt, "time_periods", timePeriods)
 	unit := ""
 	for _, tp := range timePeriods {
 		input.TimePeriod = tp
@@ -253,7 +258,7 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 		for paginator.HasMorePages() {
 			out, err := paginator.NextPage(ctx)
 			if err != nil {
-				return "", "", fmt.Errorf("failed to get cost and usage: %w", err)
+				return "", "", fmt.Errorf("failed to get cost and usage[%s~%s]: %w", *tp.Start, *tp.End, err)
 			}
 			for _, data := range out.ResultsByTime {
 				date, err := time.Parse("2006-01-02", *data.TimePeriod.Start)
