@@ -160,6 +160,29 @@ func (g *GraphGenerator) IsSavingsPlanApplied(c RootCause) bool {
 	return false
 }
 
+func generateTimePeriods(startAt time.Time, endAt time.Time) []*types.DateInterval {
+	// group by month, start=2024-01-29, end=2024-02-04 => [2024-01-29, 2024-01-31], [2024-02-01, 2024-02-04]
+	timePeriods := []*types.DateInterval{}
+	current := startAt
+	next := current.AddDate(0, 0, 1)
+	for next.Before(endAt) {
+		// if month is different, append timePeriod
+		if current.Year() != next.Year() || current.Month() != next.Month() {
+			timePeriods = append(timePeriods, &types.DateInterval{
+				Start: aws.String(current.Format("2006-01-02")),
+				End:   aws.String(next.Format("2006-01-02")),
+			})
+			current = next
+		}
+		next = next.AddDate(0, 0, 1)
+	}
+	timePeriods = append(timePeriods, &types.DateInterval{
+		Start: aws.String(current.Format("2006-01-02")),
+		End:   aws.String(endAt.AddDate(0, 0, 1).Format("2006-01-02")),
+	})
+	return timePeriods
+}
+
 func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, startAt, endAt time.Time, c RootCause, extraLabel string, extraFilters []types.Expression) (string, string, error) {
 	costLabel := []string{}
 	groupBy := []types.GroupDefinition{}
@@ -222,25 +245,7 @@ func (g *GraphGenerator) renderGraph(ctx context.Context, graph *CostGraph, star
 		Metrics: []string{"NET_UNBLENDED_COST"},
 	}
 	slog.Info("get cost and usage", "start_at", startAt, "end_at", endAt, "input", input)
-	// group by month, start=2024-01-29, end=2024-02-04 => [2024-01-29, 2024-01-31], [2024-02-01, 2024-02-04]
-	var timePeriods []*types.DateInterval
-	current := startAt
-	next := current.AddDate(0, 0, 1)
-	for next.Before(endAt) {
-		// if month is different, append timePeriod
-		if current.Year() != next.Year() || current.Month() != next.Month() {
-			timePeriods = append(timePeriods, &types.DateInterval{
-				Start: aws.String(current.Format("2006-01-02")),
-				End:   aws.String(next.Format("2006-01-02")),
-			})
-			current = next
-		}
-		next = next.AddDate(0, 0, 1)
-	}
-	timePeriods = append(timePeriods, &types.DateInterval{
-		Start: aws.String(current.Format("2006-01-02")),
-		End:   aws.String(endAt.AddDate(0, 0, 1).Format("2006-01-02")),
-	})
+	timePeriods := generateTimePeriods(startAt, endAt)
 	unit := ""
 	for _, tp := range timePeriods {
 		input.TimePeriod = tp
