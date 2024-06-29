@@ -512,7 +512,8 @@ func (h *Handler) handleAmazonSNS(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := h.postAnomalyDetectedMessage(ctx, a); err != nil {
 			h.logger.Error("failed to post anomaly detected message", "error", err)
-			if !h.noErrorReport {
+			var reported *reportedError
+			if !h.noErrorReport && !errors.As(err, &reported) {
 				_, _, err := h.client.PostMessage(h.channel, slack.MsgOptionText(fmt.Sprintf("[error] failed to post anomaly detected message: %s", err), false))
 				if err != nil {
 					h.logger.Error("failed to post message", "error", err)
@@ -698,6 +699,18 @@ func (h *Handler) processEventsAPIEvent(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
+type reportedError struct {
+	Paent error
+}
+
+func (r *reportedError) Error() string {
+	return r.Paent.Error()
+}
+
+func (r *reportedError) Unwrap() error {
+	return r.Paent
+}
+
 func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) error {
 	data, err := h.newTemplateData(ctx, a)
 	if err != nil {
@@ -706,11 +719,6 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 	opts, err := h.newDetectAnomalyMessageOptions(data)
 	if err != nil {
 		return fmt.Errorf("failed to create message: %w", err)
-	}
-	g := NewGraphGenerator(h.ce, h.org)
-	graphs, err := g.Generate(ctx, a)
-	if err != nil {
-		return fmt.Errorf("failed to generate graphs: %w", err)
 	}
 	var posted bool
 	var ts string
@@ -753,6 +761,19 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 		}
 	}
 	h.logger.Info("post anomaly detected message", "anomaly_id", a.AnomalyID, "thread_ts", ts)
+	g := NewGraphGenerator(h.ce, h.org)
+	graphs, err := g.Generate(ctx, a)
+	if err != nil {
+		_, _, msgErr := h.client.PostMessage(
+			h.channel,
+			slack.MsgOptionTS(ts),
+			slack.MsgOptionText(fmt.Sprintf("[error] %s", err), false))
+		if msgErr != nil {
+			h.logger.Error("failed to post error message", "error", err)
+			return err
+		}
+		return &reportedError{Paent: err}
+	}
 	for i, g := range graphs {
 		name := fmt.Sprintf("anomaly-%s-root-cause%d.png", a.AnomalyID, i+1)
 		file, err := h.client.UploadFileV2Context(ctx, slack.UploadFileV2Parameters{
@@ -763,7 +784,15 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 			ThreadTimestamp: ts,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to upload file: %w", err)
+			_, _, msgErr := h.client.PostMessage(
+				h.channel,
+				slack.MsgOptionTS(ts),
+				slack.MsgOptionText(fmt.Sprintf("[error] %s", err), false))
+			if msgErr != nil {
+				h.logger.Error("failed to upload graph error message", "error", err)
+				return fmt.Errorf("failed to upload file: %w", err)
+			}
+			return &reportedError{Paent: err}
 		}
 		h.logger.Info("upload file", "file_id", file.ID, "file_name", name)
 	}
