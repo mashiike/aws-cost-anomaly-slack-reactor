@@ -9,7 +9,9 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/Songmu/flextime"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
@@ -939,5 +941,94 @@ func TestGraphGeneratorForSavingsPlanTarget(t *testing.T) {
 		if !reflect.DeepEqual(expected, bs) {
 			t.Errorf("unexpected graph%d", i)
 		}
+	}
+}
+
+func TestGenerateTimePeriods(t *testing.T) {
+	cases := []struct {
+		current  string
+		startAt  string
+		endAt    string
+		expected []*types.DateInterval
+	}{
+		{
+			current: "2021-05-18",
+			startAt: "2021-05-17",
+			endAt:   "2021-05-20",
+			expected: []*types.DateInterval{
+				{
+					Start: aws.String("2021-05-17"),
+					End:   aws.String("2021-05-21"),
+				},
+			},
+		},
+		{
+			current: "2021-06-03",
+			startAt: "2021-05-21",
+			endAt:   "2021-06-08",
+			expected: []*types.DateInterval{
+				{
+					Start: aws.String("2021-05-21"),
+					End:   aws.String("2021-06-01"),
+				},
+				{
+					Start: aws.String("2021-06-01"),
+					End:   aws.String("2021-06-09"),
+				},
+			},
+		},
+		{
+			current: "2024-07-01",
+			startAt: "2024-06-21",
+			endAt:   "2024-07-07",
+			expected: []*types.DateInterval{
+				{
+					Start: aws.String("2024-06-21"),
+					End:   aws.String("2024-07-01"),
+				},
+				{
+					Start: aws.String("2024-07-01"),
+					End:   aws.String("2024-07-08"),
+				},
+			},
+		},
+		{
+			current: "2024-06-29",
+			startAt: "2024-06-21",
+			endAt:   "2024-07-07",
+			expected: []*types.DateInterval{
+				{
+					Start: aws.String("2024-06-21"),
+					End:   aws.String("2024-07-01"),
+				},
+			},
+		},
+		{
+			current: "2024-06-30",
+			startAt: "2024-06-21",
+			endAt:   "2024-07-07",
+			expected: []*types.DateInterval{
+				{
+					Start: aws.String("2024-06-21"),
+					End:   aws.String("2024-07-01"),
+				},
+			},
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%s-%s_%s", c.startAt, c.endAt, c.current), func(t *testing.T) {
+			if c.current != "" {
+				current, err := time.Parse("2006-01-02", c.current)
+				require.NoError(t, err)
+				restore := flextime.Set(current)
+				defer restore()
+			}
+			startAt, err := time.Parse("2006-01-02", c.startAt)
+			require.NoError(t, err)
+			endAt, err := time.Parse("2006-01-02", c.endAt)
+			require.NoError(t, err)
+			actual := generateTimePeriods(startAt, endAt)
+			require.EqualValues(t, c.expected, actual)
+		})
 	}
 }
