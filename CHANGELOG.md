@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.7.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.6.4...v0.7.0) - 2024-06-29
+- Bump golang.org/x/image from 0.16.0 to 0.18.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/73
+- Bump goreleaser/goreleaser-action from 5 to 6 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/64
+- post always root message by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/77
+- Bump github.com/aws/aws-sdk-go-v2 from 1.27.0 to 1.30.1 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/75
+- Bump github.com/fujiwara/ridge from 0.9.0 to 0.11.2 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/71
+- goodbye staticcheck reviewdog by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/79
+- fix  ValidationException: end date past the beginning of next month by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/78
+
 ## [v0.6.4](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.6.3...v0.6.4) - 2024-06-01
 - fix TimePeriod, End not include. by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/59
 
