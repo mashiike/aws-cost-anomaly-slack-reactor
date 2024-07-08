@@ -80,8 +80,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/color v1.17.0 h1:GlRw1BRJxkpqUCBKzKOw098ed57fEsKeNjpTe3cSjK4=
 github.com/fatih/color v1.17.0/go.mod h1:YZ7TlrGPkiz6ku9fK3TLD/pl3CpsiFyu8N92HLgmosI=
-github.com/fujiwara/ridge v0.11.2 h1:YuU6vBb4KwWmvnmo5LdP2WP2wC9Lq+vaguao+H75Igc=
-github.com/fujiwara/ridge v0.11.2/go.mod h1:FUIBF8ZHZ2BpGp14b4oMbAiESQIldmtlJ1WAwt8TUbI=
+github.com/fujiwara/ridge v0.11.3 h1:5Sz/3AgCCZNY5+IWiymFA9eFgdL1HLBMxHWtkXPy1co=
+github.com/fujiwara/ridge v0.11.3/go.mod h1:FUIBF8ZHZ2BpGp14b4oMbAiESQIldmtlJ1WAwt8TUbI=
 github.com/go-fonts/dejavu v0.3.2 h1:3XlHi0JBYX+Cp8n98c6qSoHrxPa4AUKDMKdrh/0sUdk=
 github.com/go-fonts/dejavu v0.3.2/go.mod h1:m+TzKY7ZEl09/a17t1593E4VYW8L1VaBXHzFZOIjGEY=
 github.com/go-fonts/latin-modern v0.3.2 h1:M+Sq24Dp0ZRPf3TctPnG1MZxRblqyWC/cRUL9WmdaFc=
