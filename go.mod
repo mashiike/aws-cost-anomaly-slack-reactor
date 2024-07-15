@@ -7,7 +7,7 @@ toolchain go1.22.3
 require (
 	github.com/Songmu/flextime v0.1.0
 	github.com/aws/aws-lambda-go v1.47.0
-	github.com/aws/aws-sdk-go-v2 v1.30.1
+	github.com/aws/aws-sdk-go-v2 v1.30.3
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.13.19
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.38.4
