@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.7.1](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.7.0...v0.7.1) - 2024-11-20
+- update go version and moduels by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/99
+
 ## [v0.7.0](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.6.4...v0.7.0) - 2024-06-29
 - Bump golang.org/x/image from 0.16.0 to 0.18.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/73
 - Bump goreleaser/goreleaser-action from 5 to 6 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/64
