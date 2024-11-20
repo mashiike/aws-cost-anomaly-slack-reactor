@@ -2,7 +2,7 @@ module github.com/mashiike/aws-cost-anomaly-slack-reactor
 
 go 1.22
 
-toolchain go1.22.3
+toolchain go1.23.3
 
 require (
 	github.com/Songmu/flextime v0.1.0
