@@ -117,8 +117,8 @@ github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c/go.mod h1:DNbx2/
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/lmittmann/tint v1.0.5 h1:NQclAutOfYsqs2F1Lenue6OoWCajs5wJcP3DfWVpePw=
 github.com/lmittmann/tint v1.0.5/go.mod h1:HIS3gSy7qNwGCj+5oRjAutErFBl4BzdQP6cJZ0NfMwE=
-github.com/mashiike/canyon v0.8.0 h1:U2JdBqK1d9032bDMQnyIucGIZ2hArnnV6aViIAroH70=
-github.com/mashiike/canyon v0.8.0/go.mod h1:P5Wd/EGWb8GkfmY9C9xp1s1yEbzlf2cKFkSAOmAHMiE=
+github.com/mashiike/canyon v0.8.1 h1:6+OD9ppxaDfhPAc+JqtFiL+qyZzGoduISt7ZtrKO/b0=
+github.com/mashiike/canyon v0.8.1/go.mod h1:kSnwEGeY1Sh6SPci2vLomLsnnQymWV2y+x06a/DIi4o=
 github.com/mashiike/slogutils v0.4.0 h1:VQIkeEZ/dMhYnwwXPI5Ve19ZuD2fJTwLQ7ZoSkt+zfE=
 github.com/mashiike/slogutils v0.4.0/go.mod h1:BN8qYMkNbqpNHlsteXfO71vmOnjhdSzNd/5Q5gttNhw=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
