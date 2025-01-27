@@ -7,7 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/Songmu/flextime v0.1.0
 	github.com/aws/aws-lambda-go v1.47.0
-	github.com/aws/aws-sdk-go-v2 v1.32.5
+	github.com/aws/aws-sdk-go-v2 v1.34.0
 	github.com/aws/aws-sdk-go-v2/config v1.28.5
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.15.17
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.43.6
@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.35.1
 	github.com/aws/aws-sdk-go-v2/service/sns v1.33.5
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.1
-	github.com/aws/smithy-go v1.22.1
+	github.com/aws/smithy-go v1.22.2
 	github.com/fatih/color v1.18.0
 	github.com/fujiwara/ridge v0.12.1
 	github.com/gorilla/mux v1.8.1
