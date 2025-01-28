@@ -24,7 +24,7 @@ require (
 	github.com/mashiike/canyon v0.8.0
 	github.com/mashiike/slogutils v0.4.0
 	github.com/slack-go/slack v0.15.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	gonum.org/v1/plot v0.15.0
 )
 
