@@ -21,7 +21,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/handlename/ssmwrap/v2 v2.2.0
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
-	github.com/mashiike/canyon v0.8.0
+	github.com/mashiike/canyon v0.8.1
 	github.com/mashiike/slogutils v0.4.0
 	github.com/slack-go/slack v0.15.0
 	github.com/stretchr/testify v1.10.0
