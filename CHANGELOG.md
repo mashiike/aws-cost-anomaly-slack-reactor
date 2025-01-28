@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.7.2](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.7.1...v0.7.2) - 2025-01-28
+- Bump the aws-sdk-go-v2 group across 1 directory with 7 updates by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/116
+- Bump github.com/stretchr/testify from 1.9.0 to 1.10.0 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/103
+- Bump github.com/mashiike/canyon from 0.8.0 to 0.8.1 by @dependabot in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/102
+
 ## [v0.7.1](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.7.0...v0.7.1) - 2024-11-20
 - update go version and moduels by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/99
 
