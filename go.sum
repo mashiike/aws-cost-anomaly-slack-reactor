@@ -106,8 +106,8 @@ github.com/gorilla/mux v1.8.1/go.mod h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWS
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/handlename/ssmwrap/v2 v2.2.0 h1:0MRN4pDSATlNeL0k09aJfTkqbM0r7DRjQvKNT94Kg+8=
-github.com/handlename/ssmwrap/v2 v2.2.0/go.mod h1:f6wQjYC/8g0d+ONOzY6yd181bzdxgZprv/W6Lk+N+fE=
+github.com/handlename/ssmwrap/v2 v2.2.2 h1:uwfoFyV5ZWMrutZqacKYTpK7OLgM/JjvNV5puXJK9NM=
+github.com/handlename/ssmwrap/v2 v2.2.2/go.mod h1:MYDnH8XllHUfrZOjSEO4dAzJVvEI84XjrQKb4tFCGww=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1 h1:shLQSRRSCCPj3f2gpwzGwWFoC7ycTf1rcQZHOlsJ6N8=
