@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.38.2
 	github.com/aws/aws-sdk-go-v2/service/sns v1.34.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.18
-	github.com/aws/smithy-go v1.22.2
+	github.com/aws/smithy-go v1.23.0
 	github.com/fatih/color v1.18.0
 	github.com/fujiwara/ridge v0.12.1
 	github.com/gorilla/mux v1.8.1
