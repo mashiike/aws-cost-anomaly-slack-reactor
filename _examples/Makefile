@@ -9,11 +9,11 @@ clean:
 	rm -f *_dummy.zip
 
 lambroll/deploy: bootstrap
-	lambroll --log-level debug deploy --function-url function_url.json
+	aqua exec -- lambroll --log-level debug deploy --function-url function_url.json
 	$(MAKE) clean
 
 lambroll/logs:
-	lambroll logs --follow --format=short
+	aqua exec -- lambroll logs --follow --format=short
 
 .PHONY: terraform/init
 terraform/init:
