@@ -1,6 +1,6 @@
 module github.com/mashiike/aws-cost-anomaly-slack-reactor
 
-go 1.24.0
+go 1.25
 
 require (
 	github.com/Songmu/flextime v0.1.0
@@ -21,7 +21,7 @@ require (
 	github.com/ken39arg/go-flagx v0.0.0-20220608183922-7cf7c6c0093c
 	github.com/mashiike/canyon v0.11.0
 	github.com/mashiike/slogutils v0.4.0
-	github.com/slack-go/slack v0.17.3
+	github.com/slack-go/slack v0.18.0
 	github.com/stretchr/testify v1.11.1
 	gonum.org/v1/plot v0.16.0
 )
