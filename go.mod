@@ -1,6 +1,6 @@
 module github.com/mashiike/aws-cost-anomaly-slack-reactor
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/Songmu/flextime v0.1.0
@@ -66,8 +66,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/samber/lo v1.52.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	golang.org/x/image v0.35.0 // indirect
+	golang.org/x/image v0.38.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
