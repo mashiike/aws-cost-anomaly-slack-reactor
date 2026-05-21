@@ -1,7 +1,7 @@
-version: 2
+version: "2"
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - govet
     - revive
@@ -18,13 +18,15 @@ linters:
       check-blank: true
       exclude-functions:
         - (io.Closer).Close
+        - (net/http.ResponseWriter).Write
+
+  exclusions:
+    paths:
+      - ".*\\.gen\\.go$"
 
 run:
-  tests: true
-  timeout: 5m
-  skip-files:
-    - ".*\\.gen\\.go$"
-    - ".*_test\\.go$"
+  tests: false
+  timeout: 15m
 
 formatters:
   enable:
@@ -34,7 +36,8 @@ formatters:
     gofmt:
       simplify: true
     goimports:
-      local-prefixes: github.com/my_org
+      local-prefixes:
+        - github.com/mashiike
   exclusions:
     paths:
       - ".*\\.gen\\.go$"

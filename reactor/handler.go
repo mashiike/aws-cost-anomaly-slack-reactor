@@ -29,9 +29,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gorilla/mux"
-	"github.com/mashiike/canyon"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
+
+	"github.com/mashiike/canyon"
 )
 
 // Handler is the http.Handler that receives AWS Cost Anomaly SNS notifications
@@ -628,7 +629,9 @@ func (h *Handler) processInteractiveMessage(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		h.logger.Warn("failed to parse action value", "error", err)
 		if isWorker {
-			postToThread(ctx, slack.MsgOptionText(fmt.Sprintf("[error] failed to parse action value: %s", err), false))
+			if postErr := postToThread(ctx, slack.MsgOptionText(fmt.Sprintf("[error] failed to parse action value: %s", err), false)); postErr != nil {
+				h.logger.WarnContext(ctx, "failed to post to thread", "error", postErr)
+			}
 		}
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -638,17 +641,21 @@ func (h *Handler) processInteractiveMessage(w http.ResponseWriter, r *http.Reque
 	if err := h.ProvideFeedback(ctx, anomalyID, action.ActionID); err != nil {
 		h.logger.Error("failed to provide feedback", "error", err)
 		if isWorker {
-			postToThread(ctx,
+			if postErr := postToThread(ctx,
 				slack.MsgOptionText(fmt.Sprintf("[error] failed to provide feedback: %s", err), false),
-			)
+			); postErr != nil {
+				h.logger.WarnContext(ctx, "failed to post to thread", "error", postErr)
+			}
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	postToThread(ctx,
+	if postErr := postToThread(ctx,
 		slack.MsgOptionText(fmt.Sprintf("Feedback of `%s` was provided for AnomalyID `%s` by user `%s` .", action.Text.Text, anomalyID, actionUser.Name), false),
 		slack.MsgOptionBroadcast(),
-	)
+	); postErr != nil {
+		h.logger.WarnContext(ctx, "failed to post to thread", "error", postErr)
+	}
 	w.WriteHeader(http.StatusOK)
 }
 

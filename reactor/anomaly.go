@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
+
 	"github.com/mashiike/aws-cost-anomaly-slack-reactor/internal/costexplorerx"
 )
 
