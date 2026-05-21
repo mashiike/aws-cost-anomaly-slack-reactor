@@ -16,6 +16,24 @@
 - chore(reactor): fix Paent typo and drop stale slack v2 comment by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/170
 - Bump goreleaser/goreleaser-action from 6 to 7 by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/160
 - chore(lint): clean up golangci-lint warnings (58 -> 0 on tracked sources) by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/171
+- docs(skill): add setup-reactor onboarding guide by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/172
+
+## [v0.7.3](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.7.2...v0.7.3) - 2026-05-21
+- Bump github.com/aws/aws-sdk-go-v2 from 1.34.0 to 1.36.0 by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/120
+- Bump the aws-sdk-go-v2 group across 1 directory with 7 updates by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/131
+- Bump the aws-sdk-go-v2 group with 7 updates by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/132
+- Bump the aws-sdk-go-v2 group with 2 updates by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/134
+- Bump the aws-sdk-go-v2 group across 1 directory with 7 updates by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/139
+- Migrate .golangci.yaml to v2 format by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/155
+- Bump actions/checkout from 4 to 6 by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/154
+- Bump actions/setup-go from 5 to 6 by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/149
+- Upgrade Go version and update dependencies by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/157
+- Bump the aws-sdk-go-v2 group across 1 directory with 3 updates by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/159
+- Bump the aws-sdk-go-v2 group with 7 updates by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/161
+- chore(deps): upgrade Go to 1.26, bump deps and tools by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/169
+- chore(reactor): fix Paent typo and drop stale slack v2 comment by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/170
+- Bump goreleaser/goreleaser-action from 6 to 7 by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/160
+- chore(lint): clean up golangci-lint warnings (58 -> 0 on tracked sources) by @mashiike in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/171
 
 ## [v0.7.3](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.7.2...v0.7.3) - 2026-05-21
 - Bump github.com/aws/aws-sdk-go-v2 from 1.34.0 to 1.36.0 by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/120
