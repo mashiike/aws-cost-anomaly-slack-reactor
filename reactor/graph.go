@@ -13,6 +13,8 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
+// CostGraph accumulates dated cost data points per legend and renders them as
+// a stacked or grouped bar chart PNG.
 type CostGraph struct {
 	mu          sync.Mutex
 	ticker      graphTicker
@@ -20,6 +22,7 @@ type CostGraph struct {
 	EnableStack bool
 }
 
+// NewCostGraph returns an empty CostGraph with stacking enabled.
 func NewCostGraph() *CostGraph {
 	return &CostGraph{
 		dataPoints: make(map[string]map[time.Time]float64),
@@ -30,6 +33,7 @@ func NewCostGraph() *CostGraph {
 	}
 }
 
+// AddDataPoint records a cost value at time t under the given legend.
 func (g *CostGraph) AddDataPoint(t time.Time, cost float64, legend string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -55,6 +59,8 @@ var graphColors = []color.RGBA{
 	{R: 140, G: 81, B: 10, A: 255},
 }
 
+// WriteTo renders the accumulated data points to a PNG and returns an
+// io.WriterTo for the encoded image.
 func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -202,17 +208,17 @@ func (t *graphTicker) Len() int {
 
 const maxLabels = 8
 
-func (t *graphTicker) Ticks(min, max float64) []plot.Tick {
+func (t *graphTicker) Ticks(lo, hi float64) []plot.Tick {
 	dates := t.Dates()
 	interval := int(math.Ceil(float64(len(dates)) / float64(maxLabels)))
 	var ticks []plot.Tick
 	for i, date := range dates {
-		if float64(i) >= min && float64(i) <= max {
+		if float64(i) >= lo && float64(i) <= hi {
 			tick := plot.Tick{
 				Value: float64(i),
 				Label: date.Format("2006-01-02"),
 			}
-			if int(float64(i)-min)%interval != 0 {
+			if int(float64(i)-lo)%interval != 0 {
 				tick.Label = ""
 			}
 			ticks = append(ticks, tick)

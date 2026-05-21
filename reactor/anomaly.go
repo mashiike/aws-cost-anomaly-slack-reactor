@@ -1,3 +1,6 @@
+// Package reactor implements the HTTP handler that reacts to AWS Cost Anomaly
+// SNS notifications by posting anomaly summaries and root-cause cost graphs to
+// Slack, and forwards Slack action responses back as Cost Anomaly feedback.
 package reactor
 
 import (
@@ -17,9 +20,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
+
 	"github.com/mashiike/aws-cost-anomaly-slack-reactor/internal/costexplorerx"
 )
 
+// Anomaly is the AWS Cost Anomaly payload delivered via SNS.
 type Anomaly struct {
 	AccountID          string        `json:"accountId"`
 	AnomalyDetailsLink string        `json:"anomalyDetailsLink"`
@@ -35,11 +40,13 @@ type Anomaly struct {
 	SubscriptionName   string        `json:"subscriptionName"`
 }
 
+// AnomalyScore is the score assigned to an Anomaly by Cost Anomaly Detection.
 type AnomalyScore struct {
 	CurrentScore float64 `json:"currentScore"`
 	MaxScore     float64 `json:"maxScore"`
 }
 
+// AnomalyImpact summarises the cost impact of an Anomaly.
 type AnomalyImpact struct {
 	MaxImpact             float64 `json:"maxImpact"`
 	TotalActualSpend      float64 `json:"totalActualSpend"`
@@ -48,6 +55,8 @@ type AnomalyImpact struct {
 	TotalImpactPercentage float64 `json:"totalImpactPercentage"`
 }
 
+// RootCause identifies a service / account / region dimension that contributed
+// to the Anomaly's cost.
 type RootCause struct {
 	LinkedAccount     string `json:"linkedAccount"`
 	LinkedAccountName string `json:"linkedAccountName"`
@@ -56,15 +65,20 @@ type RootCause struct {
 	UsageType         string `json:"usageType"`
 }
 
+// Graph is a rendered PNG image (typically of an Anomaly's cost trend) with
+// its byte size.
 type Graph struct {
 	r    io.Reader
 	size int64
 }
 
+// DescribeAccountAPIClient is the subset of the AWS Organizations client used
+// to look up an account name by ID.
 type DescribeAccountAPIClient interface {
 	DescribeAccount(ctx context.Context, input *organizations.DescribeAccountInput, optFns ...func(*organizations.Options)) (*organizations.DescribeAccountOutput, error)
 }
 
+// GraphGenerator renders root-cause cost graphs for a given Anomaly.
 type GraphGenerator struct {
 	client                     costexplorerx.GetCostAndUsageAPIClient
 	org                        DescribeAccountAPIClient
@@ -74,6 +88,8 @@ type GraphGenerator struct {
 	cacheDescribeAccountExpire map[string]time.Time
 }
 
+// NewGraphGenerator returns a GraphGenerator backed by the given Cost Explorer
+// and Organizations clients.
 func NewGraphGenerator(client costexplorerx.GetCostAndUsageAPIClient, org DescribeAccountAPIClient) *GraphGenerator {
 	return &GraphGenerator{
 		client:                     client,
@@ -100,6 +116,7 @@ func (g *GraphGenerator) describeAccount(ctx context.Context, accountID string) 
 	return out, nil
 }
 
+// Generate renders one Graph per RootCause of the given Anomaly.
 func (g *GraphGenerator) Generate(ctx context.Context, anomaly Anomaly) ([]*Graph, error) {
 	graphs := make([]*Graph, 0, len(anomaly.RootCauses))
 	for _, c := range anomaly.RootCauses {
@@ -148,6 +165,9 @@ func (g *GraphGenerator) generate(ctx context.Context, startAt, endAt time.Time,
 	return w, nil
 }
 
+// IsSavingsPlanApplied reports whether Savings Plans typically apply to the
+// RootCause's service, in which case the graph is also rendered without the
+// SavingsPlan negation to show on-demand cost.
 func (g *GraphGenerator) IsSavingsPlanApplied(c RootCause) bool {
 	if strings.Contains(c.Service, "Amazon Elastic Compute Cloud") {
 		return true

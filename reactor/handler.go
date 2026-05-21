@@ -29,11 +29,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gorilla/mux"
-	"github.com/mashiike/canyon"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
+
+	"github.com/mashiike/canyon"
 )
 
+// Handler is the http.Handler that receives AWS Cost Anomaly SNS notifications
+// and Slack events, posts anomaly messages to Slack, and records user feedback.
 type Handler struct {
 	ce                *costexplorer.Client
 	org               *organizations.Client
@@ -57,6 +60,8 @@ var _ http.Handler = (*Handler)(nil)
 //go:embed default_message.json.tpl
 var defaultTemplate string
 
+// New constructs a Handler from the given options, validating required
+// settings and initialising the AWS and Slack clients.
 func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	token, ok := os.LookupEnv("SLACK_TOKEN")
 	if !ok {
@@ -110,7 +115,7 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 			if err != nil {
 				return "", err
 			}
-			return string([]byte(bs)[1 : len(bs)-1]), nil
+			return string(bs[1 : len(bs)-1]), nil
 		},
 		"to_date_str": func(t time.Time) string {
 			return t.Format("2006-01-02")
@@ -183,13 +188,13 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	if _, err := h.newDetectAnomalyMessageOptions(dummy); err != nil {
 		return nil, fmt.Errorf("failed to create default message: %w", err)
 	}
-	router.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	})
-	router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 	router.HandleFunc("/amazon-sns", h.handleAmazonSNS).Methods(http.MethodPost)
@@ -208,10 +213,14 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	return h, nil
 }
 
+// EnableDynamoDB reports whether the Handler has a DynamoDB table configured
+// for persisting Slack message state.
 func (h *Handler) EnableDynamoDB() bool {
 	return h.dynamodbTableName != ""
 }
 
+// PrepareDynamoDBTable creates the configured DynamoDB table if it does not
+// exist and enables TTL on the TTL attribute.
 func (h *Handler) PrepareDynamoDBTable(ctx context.Context) error {
 	h.logger.DebugContext(ctx, "prepare dynamodb table", "table_name", h.dynamodbTableName)
 	// check table exists
@@ -306,6 +315,8 @@ func (h *Handler) PrepareDynamoDBTable(ctx context.Context) error {
 	return nil
 }
 
+// AnomalySlackMessage is the DynamoDB record that links an AWS Cost Anomaly
+// to the Slack thread where it was posted.
 type AnomalySlackMessage struct {
 	AnomalyID             string
 	SlackTeamID           string
@@ -314,6 +325,8 @@ type AnomalySlackMessage struct {
 	TTL                   int64
 }
 
+// SaveAnomalySlackMessage stores the AnomalySlackMessage in DynamoDB, setting
+// SlackTeamID from the Handler and a 1-month TTL.
 func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMessage) error {
 	m.SlackTeamID = h.slackTeamID
 	m.TTL = time.Now().AddDate(0, 1, 0).Unix()
@@ -332,6 +345,8 @@ func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMe
 	return nil
 }
 
+// GetAnomalySlackMessage looks up a previously saved AnomalySlackMessage by
+// anomaly ID. The boolean return is false when no record is found.
 func (h *Handler) GetAnomalySlackMessage(ctx context.Context, anomalyID string) (*AnomalySlackMessage, bool, error) {
 	h.logger.DebugContext(ctx, "get anomaly slack message", "anomaly_id", anomalyID, "slack_team_id", h.slackTeamID)
 	output, err := h.ddb.GetItem(ctx, &dynamodb.GetItemInput{
@@ -366,7 +381,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // https://docs.aws.amazon.com/sns/latest/dg/json-formats.html
 type httpNotification struct {
 	Type             string    `json:"Type"`
-	MessageId        string    `json:"MessageId"`
+	MessageId        string    `json:"MessageId"` //nolint:revive // field name mirrors AWS SNS HTTP notification JSON
 	Token            string    `json:"Token,omitempty"`
 	TopicArn         string    `json:"TopicArn"`
 	Subject          string    `json:"Subject,omitempty"`
@@ -614,7 +629,9 @@ func (h *Handler) processInteractiveMessage(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		h.logger.Warn("failed to parse action value", "error", err)
 		if isWorker {
-			postToThread(ctx, slack.MsgOptionText(fmt.Sprintf("[error] failed to parse action value: %s", err), false))
+			if postErr := postToThread(ctx, slack.MsgOptionText(fmt.Sprintf("[error] failed to parse action value: %s", err), false)); postErr != nil {
+				h.logger.WarnContext(ctx, "failed to post to thread", "error", postErr)
+			}
 		}
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -624,17 +641,21 @@ func (h *Handler) processInteractiveMessage(w http.ResponseWriter, r *http.Reque
 	if err := h.ProvideFeedback(ctx, anomalyID, action.ActionID); err != nil {
 		h.logger.Error("failed to provide feedback", "error", err)
 		if isWorker {
-			postToThread(ctx,
+			if postErr := postToThread(ctx,
 				slack.MsgOptionText(fmt.Sprintf("[error] failed to provide feedback: %s", err), false),
-			)
+			); postErr != nil {
+				h.logger.WarnContext(ctx, "failed to post to thread", "error", postErr)
+			}
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	postToThread(ctx,
+	if postErr := postToThread(ctx,
 		slack.MsgOptionText(fmt.Sprintf("Feedback of `%s` was provided for AnomalyID `%s` by user `%s` .", action.Text.Text, anomalyID, actionUser.Name), false),
 		slack.MsgOptionBroadcast(),
-	)
+	); postErr != nil {
+		h.logger.WarnContext(ctx, "failed to post to thread", "error", postErr)
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -799,6 +820,8 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 	return nil
 }
 
+// ProvideFeedback forwards the Slack action ID as Cost Anomaly Detection
+// feedback (Yes / No / PlannedActivity) for the given anomaly.
 func (h *Handler) ProvideFeedback(ctx context.Context, annomalyID string, actionID string) error {
 	var feedbackType types.AnomalyFeedbackType
 	switch actionID {
