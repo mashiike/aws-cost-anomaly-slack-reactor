@@ -700,15 +700,15 @@ func (h *Handler) processEventsAPIEvent(w http.ResponseWriter, r *http.Request) 
 }
 
 type reportedError struct {
-	Paent error
+	Parent error
 }
 
 func (r *reportedError) Error() string {
-	return r.Paent.Error()
+	return r.Parent.Error()
 }
 
 func (r *reportedError) Unwrap() error {
-	return r.Paent
+	return r.Parent
 }
 
 func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) error {
@@ -772,14 +772,14 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 			h.logger.Error("failed to post error message", "error", err)
 			return err
 		}
-		return &reportedError{Paent: err}
+		return &reportedError{Parent: err}
 	}
 	for i, g := range graphs {
 		name := fmt.Sprintf("anomaly-%s-root-cause%d.png", a.AnomalyID, i+1)
 		file, err := h.client.UploadFileContext(ctx, slack.UploadFileParameters{
 			Reader:          g.r,
 			Filename:        name,
-			FileSize:        int(g.size), // v2 API requires file size
+			FileSize:        int(g.size),
 			Channel:         h.channel,
 			ThreadTimestamp: ts,
 		})
@@ -792,7 +792,7 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 				h.logger.Error("failed to upload graph error message", "error", err)
 				return fmt.Errorf("failed to upload file: %w", err)
 			}
-			return &reportedError{Paent: err}
+			return &reportedError{Parent: err}
 		}
 		h.logger.Info("upload file", "file_id", file.ID, "file_name", name)
 	}
