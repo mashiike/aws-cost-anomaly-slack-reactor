@@ -13,6 +13,8 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
+// CostGraph accumulates dated cost data points per legend and renders them as
+// a stacked or grouped bar chart PNG.
 type CostGraph struct {
 	mu          sync.Mutex
 	ticker      graphTicker
@@ -20,6 +22,7 @@ type CostGraph struct {
 	EnableStack bool
 }
 
+// NewCostGraph returns an empty CostGraph with stacking enabled.
 func NewCostGraph() *CostGraph {
 	return &CostGraph{
 		dataPoints: make(map[string]map[time.Time]float64),
@@ -30,6 +33,7 @@ func NewCostGraph() *CostGraph {
 	}
 }
 
+// AddDataPoint records a cost value at time t under the given legend.
 func (g *CostGraph) AddDataPoint(t time.Time, cost float64, legend string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -55,6 +59,8 @@ var graphColors = []color.RGBA{
 	{R: 140, G: 81, B: 10, A: 255},
 }
 
+// WriteTo renders the accumulated data points to a PNG and returns an
+// io.WriterTo for the encoded image.
 func (g *CostGraph) WriteTo(title string, yLabel string) (io.WriterTo, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()

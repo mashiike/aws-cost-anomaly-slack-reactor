@@ -1,3 +1,5 @@
+// Command aws-cost-anomaly-slack-reactor is the entry point that runs the
+// reactor handler either as a local HTTP server or as an AWS Lambda function.
 package main
 
 import (

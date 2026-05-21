@@ -34,6 +34,8 @@ import (
 	"github.com/slack-go/slack/slackevents"
 )
 
+// Handler is the http.Handler that receives AWS Cost Anomaly SNS notifications
+// and Slack events, posts anomaly messages to Slack, and records user feedback.
 type Handler struct {
 	ce                *costexplorer.Client
 	org               *organizations.Client
@@ -57,6 +59,8 @@ var _ http.Handler = (*Handler)(nil)
 //go:embed default_message.json.tpl
 var defaultTemplate string
 
+// New constructs a Handler from the given options, validating required
+// settings and initialising the AWS and Slack clients.
 func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	token, ok := os.LookupEnv("SLACK_TOKEN")
 	if !ok {
@@ -110,7 +114,7 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 			if err != nil {
 				return "", err
 			}
-			return string([]byte(bs)[1 : len(bs)-1]), nil
+			return string(bs[1 : len(bs)-1]), nil
 		},
 		"to_date_str": func(t time.Time) string {
 			return t.Format("2006-01-02")
@@ -208,10 +212,14 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	return h, nil
 }
 
+// EnableDynamoDB reports whether the Handler has a DynamoDB table configured
+// for persisting Slack message state.
 func (h *Handler) EnableDynamoDB() bool {
 	return h.dynamodbTableName != ""
 }
 
+// PrepareDynamoDBTable creates the configured DynamoDB table if it does not
+// exist and enables TTL on the TTL attribute.
 func (h *Handler) PrepareDynamoDBTable(ctx context.Context) error {
 	h.logger.DebugContext(ctx, "prepare dynamodb table", "table_name", h.dynamodbTableName)
 	// check table exists
@@ -306,6 +314,8 @@ func (h *Handler) PrepareDynamoDBTable(ctx context.Context) error {
 	return nil
 }
 
+// AnomalySlackMessage is the DynamoDB record that links an AWS Cost Anomaly
+// to the Slack thread where it was posted.
 type AnomalySlackMessage struct {
 	AnomalyID             string
 	SlackTeamID           string
@@ -314,6 +324,8 @@ type AnomalySlackMessage struct {
 	TTL                   int64
 }
 
+// SaveAnomalySlackMessage stores the AnomalySlackMessage in DynamoDB, setting
+// SlackTeamID from the Handler and a 1-month TTL.
 func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMessage) error {
 	m.SlackTeamID = h.slackTeamID
 	m.TTL = time.Now().AddDate(0, 1, 0).Unix()
@@ -332,6 +344,8 @@ func (h *Handler) SaveAnomalySlackMessage(ctx context.Context, m *AnomalySlackMe
 	return nil
 }
 
+// GetAnomalySlackMessage looks up a previously saved AnomalySlackMessage by
+// anomaly ID. The boolean return is false when no record is found.
 func (h *Handler) GetAnomalySlackMessage(ctx context.Context, anomalyID string) (*AnomalySlackMessage, bool, error) {
 	h.logger.DebugContext(ctx, "get anomaly slack message", "anomaly_id", anomalyID, "slack_team_id", h.slackTeamID)
 	output, err := h.ddb.GetItem(ctx, &dynamodb.GetItemInput{
@@ -799,6 +813,8 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 	return nil
 }
 
+// ProvideFeedback forwards the Slack action ID as Cost Anomaly Detection
+// feedback (Yes / No / PlannedActivity) for the given anomaly.
 func (h *Handler) ProvideFeedback(ctx context.Context, annomalyID string, actionID string) error {
 	var feedbackType types.AnomalyFeedbackType
 	switch actionID {
