@@ -776,7 +776,7 @@ func (h *Handler) postAnomalyDetectedMessage(ctx context.Context, a Anomaly) err
 	}
 	for i, g := range graphs {
 		name := fmt.Sprintf("anomaly-%s-root-cause%d.png", a.AnomalyID, i+1)
-		file, err := h.client.UploadFileV2Context(ctx, slack.UploadFileV2Parameters{
+		file, err := h.client.UploadFileContext(ctx, slack.UploadFileParameters{
 			Reader:          g.r,
 			Filename:        name,
 			FileSize:        int(g.size), // v2 API requires file size
