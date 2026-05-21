@@ -188,13 +188,13 @@ func New(ctx context.Context, opts ...Option) (*Handler, error) {
 	if _, err := h.newDetectAnomalyMessageOptions(dummy); err != nil {
 		return nil, fmt.Errorf("failed to create default message: %w", err)
 	}
-	router.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	})
-	router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 	router.HandleFunc("/amazon-sns", h.handleAmazonSNS).Methods(http.MethodPost)
@@ -381,7 +381,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // https://docs.aws.amazon.com/sns/latest/dg/json-formats.html
 type httpNotification struct {
 	Type             string    `json:"Type"`
-	MessageId        string    `json:"MessageId"`
+	MessageId        string    `json:"MessageId"` //nolint:revive // field name mirrors AWS SNS HTTP notification JSON
 	Token            string    `json:"Token,omitempty"`
 	TopicArn         string    `json:"TopicArn"`
 	Subject          string    `json:"Subject,omitempty"`

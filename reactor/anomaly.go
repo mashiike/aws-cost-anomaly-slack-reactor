@@ -1,3 +1,6 @@
+// Package reactor implements the HTTP handler that reacts to AWS Cost Anomaly
+// SNS notifications by posting anomaly summaries and root-cause cost graphs to
+// Slack, and forwards Slack action responses back as Cost Anomaly feedback.
 package reactor
 
 import (
