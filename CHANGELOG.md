@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.7.4](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.7.3...v0.7.4) - 2026-06-16
+
+- Bump github.com/slack-go/slack from 0.23.1 to 0.26.0 by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/181
+
 ## [v0.7.3](https://github.com/mashiike/aws-cost-anomaly-slack-reactor/compare/v0.7.2...v0.7.3) - 2026-05-21
 - Bump github.com/aws/aws-sdk-go-v2 from 1.34.0 to 1.36.0 by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/120
 - Bump the aws-sdk-go-v2 group across 1 directory with 7 updates by @dependabot[bot] in https://github.com/mashiike/aws-cost-anomaly-slack-reactor/pull/131
